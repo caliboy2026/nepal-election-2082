@@ -195,8 +195,8 @@
   .animate-in { animation:fadeUp 0.4s ease forwards; }
 
   /* Search-active: collapse middle sections so results appear right below search */
-  .collapsible-sections { transition: max-height 0.4s ease, opacity 0.3s ease, margin 0.3s ease; overflow:hidden; }
-  .collapsible-sections.collapsed { max-height:0 !important; opacity:0; margin:0; pointer-events:none; }
+  .collapsible-sections { overflow:hidden; }
+  .collapsible-sections.collapsed { display:none !important; }
 
   /* No results */
   .no-results { text-align:center; padding:40px; color:var(--text2); font-size:0.85rem; }
