@@ -936,33 +936,74 @@ function applyLiveData(apiData) {
   return applied;
 }
 
-// Fallback: simulate minor updates (only used when API is unreachable)
-function simulateUpdate() {
-  ALL_CONSTITUENCIES.forEach(c => {
-    c.candidates.forEach(cand => {
-      cand.votes += Math.floor(Math.random() * 200);
-    });
-    const parts = c.counted.match(/(\d+) of (\d+)/);
-    if (parts) {
-      let current = parseInt(parts[1]);
-      const total = parseInt(parts[2]);
-      if (current < total && Math.random() < 0.3) {
-        current = Math.min(current + Math.ceil(Math.random() * 3), total);
-        c.counted = `${current} of ${total} booths`;
-      }
+// ═══ LOCAL STORAGE CACHE ═══
+// Save current state to localStorage so data persists between page loads
+function cacheDataToStorage() {
+  try {
+    const snapshot = {
+      timestamp: new Date().toISOString(),
+      parties: {},
+      provinces: PROVINCES.map(p => ({ name: p.name, results: p.results })),
+      constituencies: ALL_CONSTITUENCIES.map(c => ({
+        name: c.name, counted: c.counted,
+        candidates: c.candidates.map(d => ({ name: d.name, party: d.party, votes: d.votes }))
+      }))
+    };
+    for (const [k, p] of Object.entries(PARTIES)) {
+      snapshot.parties[k] = { won: p.won, leading: p.leading };
     }
-  });
-  if (Math.random() < 0.12) {
-    const keys = Object.keys(PARTIES).filter(k => PARTIES[k].leading > 0);
-    if (keys.length > 0) {
-      const k = keys[Math.floor(Math.random() * keys.length)];
-      PARTIES[k].leading -= 1;
-      PARTIES[k].won += 1;
-    }
-  }
+    localStorage.setItem('nepal_election_2082_cache', JSON.stringify(snapshot));
+    console.log('[Cache] Saved live data to localStorage');
+  } catch (e) { console.warn('[Cache] Could not save:', e.message); }
 }
 
-// Main refresh: try API first, fall back to simulation
+// Load cached data from localStorage on boot (replaces hardcoded defaults)
+function loadCachedData() {
+  try {
+    const raw = localStorage.getItem('nepal_election_2082_cache');
+    if (!raw) return false;
+    const cache = JSON.parse(raw);
+    const cacheAge = Date.now() - new Date(cache.timestamp).getTime();
+    // Only use cache if less than 24 hours old
+    if (cacheAge > 24 * 60 * 60 * 1000) {
+      console.log('[Cache] Cache expired (>24h), using hardcoded defaults');
+      return false;
+    }
+    // Apply cached party data
+    if (cache.parties) {
+      for (const [k, v] of Object.entries(cache.parties)) {
+        if (PARTIES[k]) {
+          PARTIES[k].won = v.won ?? PARTIES[k].won;
+          PARTIES[k].leading = v.leading ?? PARTIES[k].leading;
+        }
+      }
+    }
+    // Apply cached province data
+    if (cache.provinces) {
+      for (const cp of cache.provinces) {
+        const local = PROVINCES.find(p => p.name === cp.name);
+        if (local && cp.results) local.results = cp.results;
+      }
+    }
+    // Apply cached constituency data
+    if (cache.constituencies) {
+      for (const cc of cache.constituencies) {
+        const local = ALL_CONSTITUENCIES.find(c => c.name === cc.name);
+        if (local) {
+          if (cc.counted) local.counted = cc.counted;
+          for (const cachedCand of (cc.candidates || [])) {
+            const localCand = local.candidates.find(d => d.name === cachedCand.name);
+            if (localCand && cachedCand.votes > 0) localCand.votes = cachedCand.votes;
+          }
+        }
+      }
+    }
+    console.log(`[Cache] Loaded cached data from ${cache.timestamp}`);
+    return true;
+  } catch (e) { console.warn('[Cache] Could not load:', e.message); return false; }
+}
+
+// Main refresh: try API first, keep last known data if unavailable (no fake simulation)
 async function refreshData() {
   fetchCount++;
   try {
@@ -975,22 +1016,20 @@ async function refreshData() {
       if (applied) {
         dataSource = 'live';
         lastFetchOk = true;
+        cacheDataToStorage(); // Save fresh data to localStorage
         console.log(`[Refresh #${fetchCount}] Live data applied from: ${apiData.sources?.successful?.join(', ')} (${apiData.fetchDurationMs}ms)`);
       } else {
-        // API responded but no usable data — use simulation
         dataSource = 'local';
-        simulateUpdate();
-        console.log(`[Refresh #${fetchCount}] API responded but no parseable data, using simulation`);
+        console.log(`[Refresh #${fetchCount}] API responded but no parseable data, keeping last known data`);
       }
     } else {
       throw new Error(`HTTP ${res.status}`);
     }
   } catch (err) {
-    // API unreachable — fall back gracefully
+    // API unreachable — keep showing last known real data (no fake updates)
     dataSource = 'local';
     lastFetchOk = false;
-    simulateUpdate();
-    console.log(`[Refresh #${fetchCount}] API unavailable (${err.message}), using local simulation`);
+    console.log(`[Refresh #${fetchCount}] API unavailable (${err.message}), keeping last known data`);
   }
   renderAll();
 }
@@ -1023,7 +1062,8 @@ function tick() {
   }
 }
 
-// Boot: first refresh fires immediately
+// Boot: load cached data first, then fetch live data immediately
+loadCachedData();
 refreshData();
 setInterval(tick, 1000);
 </script>
