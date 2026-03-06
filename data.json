@@ -3,102 +3,279 @@
   "source": "manual-scrape-v2",
   "data": {
     "parties": {
-      "RSP": { "won": 1, "leading": 56 },
-      "NC": { "won": 1, "leading": 8 },
-      "UML": { "won": 0, "leading": 4 },
-      "NCP": { "won": 0, "leading": 3 },
-      "RPP": { "won": 0, "leading": 1 },
-      "SSP": { "won": 0, "leading": 1 },
-      "JSP": { "won": 0, "leading": 0 },
-      "UNP": { "won": 0, "leading": 0 },
-      "OTH": { "won": 0, "leading": 0 }
+      "RSP": {
+        "won": 1,
+        "leading": 56
+      },
+      "NC": {
+        "won": 1,
+        "leading": 8
+      },
+      "UML": {
+        "won": 0,
+        "leading": 4
+      },
+      "NCP": {
+        "won": 0,
+        "leading": 3
+      },
+      "RPP": {
+        "won": 0,
+        "leading": 1
+      },
+      "SSP": {
+        "won": 0,
+        "leading": 1
+      },
+      "JSP": {
+        "won": 0,
+        "leading": 0
+      },
+      "UNP": {
+        "won": 0,
+        "leading": 0
+      },
+      "OTH": {
+        "won": 0,
+        "leading": 1
+      }
     },
     "constituencies": [
       {
-        "name": "Jhapa-5", "province": "Koshi", "counted": "38 of 43 booths",
+        "name": "Jhapa-5",
+        "province": "Koshi",
+        "counted": "38 of 43 booths",
         "candidates": [
-          { "name": "Balendra Shah (Balen)", "party": "RSP", "votes": 10190 },
-          { "name": "K.P. Sharma Oli", "party": "UML", "votes": 4087 },
-          { "name": "Mandhara Chimariya", "party": "NC", "votes": 78 }
+          {
+            "name": "Balendra Shah (Balen)",
+            "party": "RSP",
+            "votes": 10190
+          },
+          {
+            "name": "K.P. Sharma Oli",
+            "party": "UML",
+            "votes": 4087
+          },
+          {
+            "name": "Mandhara Chimariya",
+            "party": "NC",
+            "votes": 78
+          }
         ]
       },
       {
-        "name": "Chitwan-2", "province": "Bagmati", "counted": "42 of 48 booths",
+        "name": "Chitwan-2",
+        "province": "Bagmati",
+        "counted": "42 of 48 booths",
         "candidates": [
-          { "name": "Rabi Lamichhane", "party": "RSP", "votes": 8015 },
-          { "name": "Asmin Ghimire", "party": "UML", "votes": 2590 },
-          { "name": "Mina Kumari Kharel", "party": "NC", "votes": 2581 }
+          {
+            "name": "Rabi Lamichhane",
+            "party": "RSP",
+            "votes": 8015
+          },
+          {
+            "name": "Asmin Ghimire",
+            "party": "UML",
+            "votes": 2590
+          },
+          {
+            "name": "Mina Kumari Kharel",
+            "party": "NC",
+            "votes": 2581
+          }
         ]
       },
       {
-        "name": "Chitwan-3", "province": "Bagmati", "counted": "28 of 39 booths",
+        "name": "Chitwan-3",
+        "province": "Bagmati",
+        "counted": "28 of 39 booths",
         "candidates": [
-          { "name": "Sobita Gautam", "party": "RSP", "votes": 3693 },
-          { "name": "Renu Dahal", "party": "NCP", "votes": 2263 }
+          {
+            "name": "Sobita Gautam",
+            "party": "RSP",
+            "votes": 3693
+          },
+          {
+            "name": "Renu Dahal",
+            "party": "NCP",
+            "votes": 2263
+          }
         ]
       },
       {
-        "name": "Rukum East-1", "province": "Lumbini", "counted": "30 of 34 booths",
+        "name": "Rukum East-1",
+        "province": "Lumbini",
+        "counted": "30 of 34 booths",
         "candidates": [
-          { "name": "Pushpa Kamal Dahal", "party": "NCP", "votes": 4398 },
-          { "name": "Kusum Devi Thapa", "party": "NC", "votes": 1261 },
-          { "name": "Lilamani Gautam", "party": "UML", "votes": 907 }
+          {
+            "name": "Pushpa Kamal Dahal",
+            "party": "NCP",
+            "votes": 4398
+          },
+          {
+            "name": "Kusum Devi Thapa",
+            "party": "NC",
+            "votes": 1261
+          },
+          {
+            "name": "Lilamani Gautam",
+            "party": "UML",
+            "votes": 907
+          }
         ]
       },
       {
-        "name": "Kathmandu-1", "province": "Bagmati", "counted": "52 of 52 booths",
+        "name": "Kathmandu-1",
+        "province": "Bagmati",
+        "counted": "52 of 52 booths",
         "candidates": [
-          { "name": "Ranju Neupane", "party": "RSP", "votes": 15455 },
-          { "name": "Prabal Thapa Chhetri", "party": "NC", "votes": 6364 },
-          { "name": "Ravindra Mishra", "party": "RPP", "votes": 3972 }
+          {
+            "name": "Ranju Neupane",
+            "party": "RSP",
+            "votes": 15455
+          },
+          {
+            "name": "Prabal Thapa Chhetri",
+            "party": "NC",
+            "votes": 6364
+          },
+          {
+            "name": "Ravindra Mishra",
+            "party": "RPP",
+            "votes": 3972
+          }
         ]
       },
       {
-        "name": "Kathmandu-3", "province": "Bagmati", "counted": "36 of 44 booths",
+        "name": "Kathmandu-3",
+        "province": "Bagmati",
+        "counted": "36 of 44 booths",
         "candidates": [
-          { "name": "Raju Nath Pande", "party": "RSP", "votes": 6584 },
-          { "name": "Kulman Ghising", "party": "UNP", "votes": 4220 },
-          { "name": "Ramesh Aryal", "party": "NC", "votes": 2190 }
+          {
+            "name": "Raju Nath Pande",
+            "party": "RSP",
+            "votes": 6584
+          },
+          {
+            "name": "Kulman Ghising",
+            "party": "UNP",
+            "votes": 4220
+          },
+          {
+            "name": "Ramesh Aryal",
+            "party": "NC",
+            "votes": 2190
+          }
         ]
       },
       {
-        "name": "Kathmandu-4", "province": "Bagmati", "counted": "42 of 50 booths",
+        "name": "Kathmandu-4",
+        "province": "Bagmati",
+        "counted": "42 of 50 booths",
         "candidates": [
-          { "name": "Pukar Bam", "party": "RSP", "votes": 6282 },
-          { "name": "Sachin Timilsina", "party": "NC", "votes": 1899 },
-          { "name": "Rajan Bhattarai", "party": "UML", "votes": 1479 }
+          {
+            "name": "Pukar Bam",
+            "party": "RSP",
+            "votes": 6282
+          },
+          {
+            "name": "Sachin Timilsina",
+            "party": "NC",
+            "votes": 1899
+          },
+          {
+            "name": "Rajan Bhattarai",
+            "party": "UML",
+            "votes": 1479
+          }
         ]
       },
       {
-        "name": "Kathmandu-8", "province": "Bagmati", "counted": "40 of 45 booths",
+        "name": "Kathmandu-8",
+        "province": "Bagmati",
+        "counted": "40 of 45 booths",
         "candidates": [
-          { "name": "Biraj Bhakta Shrestha", "party": "RSP", "votes": 1714 },
-          { "name": "Sapana Rajbhandari", "party": "NC", "votes": 207 },
-          { "name": "Suman Sayami", "party": "NCP", "votes": 154 }
+          {
+            "name": "Biraj Bhakta Shrestha",
+            "party": "RSP",
+            "votes": 1714
+          },
+          {
+            "name": "Sapana Rajbhandari",
+            "party": "NC",
+            "votes": 207
+          },
+          {
+            "name": "Suman Sayami",
+            "party": "NCP",
+            "votes": 154
+          }
         ]
       },
       {
-        "name": "Rupandehi-2", "province": "Lumbini", "counted": "38 of 44 booths",
+        "name": "Rupandehi-2",
+        "province": "Lumbini",
+        "counted": "38 of 44 booths",
         "candidates": [
-          { "name": "Sulabh Kharel", "party": "RSP", "votes": 7158 },
-          { "name": "Vishnu Prasad Paudel", "party": "UML", "votes": 1659 },
-          { "name": "Chunn Prasad Sharma Paudel", "party": "NC", "votes": 734 }
+          {
+            "name": "Sulabh Kharel",
+            "party": "RSP",
+            "votes": 7158
+          },
+          {
+            "name": "Vishnu Prasad Paudel",
+            "party": "UML",
+            "votes": 1659
+          },
+          {
+            "name": "Chunn Prasad Sharma Paudel",
+            "party": "NC",
+            "votes": 734
+          }
         ]
       },
       {
-        "name": "Bhaktapur-2", "province": "Bagmati", "counted": "28 of 30 booths",
+        "name": "Bhaktapur-2",
+        "province": "Bagmati",
+        "counted": "28 of 30 booths",
         "candidates": [
-          { "name": "Rajiv Khatri", "party": "RSP", "votes": 4084 },
-          { "name": "Mahesh Basnet", "party": "UML", "votes": 1819 },
-          { "name": "Kabir Rana", "party": "NC", "votes": 826 }
+          {
+            "name": "Rajiv Khatri",
+            "party": "RSP",
+            "votes": 4084
+          },
+          {
+            "name": "Mahesh Basnet",
+            "party": "UML",
+            "votes": 1819
+          },
+          {
+            "name": "Kabir Rana",
+            "party": "NC",
+            "votes": 826
+          }
         ]
       },
       {
-        "name": "Lalitpur-3", "province": "Bagmati", "counted": "28 of 33 booths",
+        "name": "Lalitpur-3",
+        "province": "Bagmati",
+        "counted": "28 of 33 booths",
         "candidates": [
-          { "name": "Tosima Karki", "party": "RSP", "votes": 4535 },
-          { "name": "Jitendra Kumar Shrestha", "party": "NC", "votes": 836 },
-          { "name": "Raj Kaji Maharjan", "party": "NCP", "votes": 265 }
+          {
+            "name": "Tosima Karki",
+            "party": "RSP",
+            "votes": 4535
+          },
+          {
+            "name": "Jitendra Kumar Shrestha",
+            "party": "NC",
+            "votes": 836
+          },
+          {
+            "name": "Raj Kaji Maharjan",
+            "party": "NCP",
+            "votes": 265
+          }
         ]
       }
     ]

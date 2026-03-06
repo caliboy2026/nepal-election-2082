@@ -90,12 +90,13 @@ function parseEkantipurHTML(html) {
   // containing party name, then /party/N/elected with won count, /party/N/leading with lead count
   const partyBlocks = html.split(/(?=<a[^>]*href=["']\/party\/\d+\?)/i);
   for (const block of partyBlocks) {
-    const electedMatch = block.match(/\/elected[^>]*>\s*(\d+)/);
-    const leadingMatch = block.match(/\/leading[^>]*>\s*(\d+)/);
+    // Match elected/leading counts — handles both ">\s*5" and ">\s*[5]" formats
+    const electedMatch = block.match(/\/elected[^>]*>\s*\[?(\d+)\]?/);
+    const leadingMatch = block.match(/\/leading[^>]*>\s*\[?(\d+)\]?/);
     if (!electedMatch || !leadingMatch) continue;
 
-    // Find party name in this block
-    const nameMatch = block.match(/>([^<]*(?:Party|Congress|UML|Maoist|Communist|Prajatantra|Shram|Samajwadi|Samjbadi|Ujyalo|Ujaylo|Independent)[^<]*)</i);
+    // Find party name in this block — look for text inside the first <a> tag
+    const nameMatch = block.match(/>([^<]*(?:Party|Congress|UML|Maoist|Communist|Prajatantra|Shram|Samajwadi|Samjbadi|Ujyalo|Ujaylo|Ujjyalo|Independent|Swatantra)[^<]*)</i);
     if (!nameMatch) continue;
 
     const key = normalizeParty(nameMatch[1].trim());
@@ -111,11 +112,15 @@ function parseEkantipurHTML(html) {
   // ── CONSTITUENCY DATA from competiviveDist ──
   // Format: competiviveDist = {"jhapa-5": [{id, name, vote_count, party_name, image, ...}]}
   // Use a greedy match since the object can be large
-  const compMatch = html.match(/competiviveDist\s*=\s*(\{[\s\S]*?\})\s*;/);
-  if (compMatch) {
+  // Match the full competiviveDist object — use greedy match up to the closing }; on its own
+  // The lazy [\s\S]*? can stop too early at nested objects, so we match balanced braces
+  const compMatch = html.match(/competiviveDist\s*=\s*(\{[\s\S]*?\})\s*;?\s*(?:const|var|let|function|<\/script)/);
+  // Fallback to original lazy match if the above doesn't work
+  const compMatchFallback = compMatch || html.match(/competiviveDist\s*=\s*(\{[\s\S]*?\})\s*;/);
+  if (compMatchFallback) {
     try {
       // The data is already valid JSON (quoted keys from Ekantipur's server)
-      const constData = JSON.parse(compMatch[1]);
+      const constData = JSON.parse(compMatchFallback[1]);
       for (const [constKey, candidates] of Object.entries(constData)) {
         if (Array.isArray(candidates) && candidates.length > 0) {
           const constName = constKey.replace(/(^|-)(\w)/g, (m, sep, c) => sep + c.toUpperCase());
@@ -136,7 +141,7 @@ function parseEkantipurHTML(html) {
     } catch (e) {
       // JSON.parse failed — try cleaning the JS object
       try {
-        let jsObj = compMatch[1];
+        let jsObj = compMatchFallback[1];
         jsObj = jsObj.replace(/'/g, '"');
         jsObj = jsObj.replace(/(\w+)\s*:/g, '"$1":');
         jsObj = jsObj.replace(/""/g, '"');

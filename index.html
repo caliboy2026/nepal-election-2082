@@ -1308,14 +1308,14 @@ async function refreshData() {
     if (res.ok) {
       const apiData = await res.json();
       const applied = applyLiveData(apiData);
-      if (applied) {
-        dataSource = 'live';
-        lastFetchOk = true;
-        cacheDataToStorage();
-        console.log(`[Refresh #${fetchCount}] 🟢 LIVE data from: ${apiData.sources?.successful?.join(', ')} (${apiData.fetchDurationMs}ms)`);
-        renderAll();
-        return;
-      }
+      // Always update timestamp and re-render when API responds — even if no new data
+      dataSource = 'live';
+      lastFetchOk = true;
+      if (applied) cacheDataToStorage();
+      const srcNames = (apiData.sources?.successful || []).map(s => s.name || s).join(', ');
+      console.log(`[Refresh #${fetchCount}] 🟢 LIVE ${applied ? 'updated' : '(no change)'} from: ${srcNames} (${apiData.fetchDurationMs}ms)`);
+      renderAll();
+      return;
     }
   } catch (err) {
     console.log(`[Refresh #${fetchCount}] Live API failed: ${err.message}`);
