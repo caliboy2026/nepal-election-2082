@@ -90,13 +90,18 @@ function parseEkantipurHTML(html) {
   // containing party name, then /party/N/elected with won count, /party/N/leading with lead count
   const partyBlocks = html.split(/(?=<a[^>]*href=["']\/party\/\d+\?)/i);
   for (const block of partyBlocks) {
-    // Match elected/leading counts — handles both ">\s*5" and ">\s*[5]" formats
-    const electedMatch = block.match(/\/elected[^>]*>\s*\[?(\d+)\]?/);
-    const leadingMatch = block.match(/\/leading[^>]*>\s*\[?(\d+)\]?/);
+    // Match elected/leading counts — numbers are inside <span class="win-count">N</span>
+    // Also handles bare numbers or [N] bracket format as fallback
+    const electedMatch = block.match(/\/elected[\s\S]*?(?:win-count|elected)[^>]*>\s*\[?(\d+)\]?/)
+                      || block.match(/\/elected[^>]*>\s*(?:<[^>]*>)?\s*\[?(\d+)\]?/);
+    const leadingMatch = block.match(/\/leading[\s\S]*?(?:lead-count|leading)[^>]*>\s*\[?(\d+)\]?/)
+                      || block.match(/\/leading[^>]*>\s*(?:<[^>]*>)?\s*\[?(\d+)\]?/);
     if (!electedMatch || !leadingMatch) continue;
 
-    // Find party name in this block — look for text inside the first <a> tag
-    const nameMatch = block.match(/>([^<]*(?:Party|Congress|UML|Maoist|Communist|Prajatantra|Shram|Samajwadi|Samjbadi|Ujyalo|Ujaylo|Ujjyalo|Independent|Swatantra)[^<]*)</i);
+    // Find party name — it's in <p>PartyName</p> or in alt="PartyName" or plain text
+    const nameMatch = block.match(/<p>\s*([^<]+)\s*<\/p>/)
+                   || block.match(/alt="([^"]+)"/)
+                   || block.match(/>([^<]*(?:Party|Congress|UML|CPN|Maoist|Communist|Prajatantra|Shram|Samajwadi|Samjbadi|Ujyalo|Ujaylo|Ujjyalo|Independent|Swatantra)[^<]*)</i);
     if (!nameMatch) continue;
 
     const key = normalizeParty(nameMatch[1].trim());
@@ -175,6 +180,7 @@ function parseEkantipurHTML(html) {
 // ═══ GENERIC HTML SCRAPER ═══
 function scrapePartyFromHTML(html) {
   const parties = {};
+  const MAX_SEATS = 165;
 
   // Look for common patterns in election sites
   // Pattern 1: Table with party name, won, leading columns
@@ -184,6 +190,8 @@ function scrapePartyFromHTML(html) {
     const key = normalizeParty(match[1]);
     const num1 = parseInt(match[2]) || 0;
     const num2 = parseInt(match[3]) || 0;
+    // Reject garbage numbers that exceed possible seat limits
+    if (num1 > MAX_SEATS || num2 > MAX_SEATS) continue;
     if (!parties[key]) parties[key] = { won: 0, leading: 0 };
     parties[key].won = Math.max(parties[key].won, Math.min(num1, num2));
     parties[key].leading = Math.max(parties[key].leading, Math.max(num1, num2));
@@ -209,16 +217,9 @@ async function fetchSource(source) {
       };
     }
 
-    // For other HTML sources, try to scrape party data
-    const scrapedParties = scrapePartyFromHTML(html);
-    if (Object.keys(scrapedParties).length > 0) {
-      return {
-        source: source.name,
-        type: 'parsed',
-        data: { parties: scrapedParties, constituencies: [] },
-        ok: true
-      };
-    }
+    // Non-Ekantipur HTML sources: generic scraper is too unreliable for party data
+    // (grabs random numbers from the page). Skip party scraping, only return empty.
+    // TODO: write a dedicated parser if nepsebajar HTML structure is understood
 
     return { source: source.name, type: source.type, ok: true, data: { parties: {}, constituencies: [] } };
   } catch (err) {
