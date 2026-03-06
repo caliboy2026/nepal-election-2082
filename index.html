@@ -150,6 +150,29 @@
   .pin-btn.pinned { opacity:1; }
   .hot-card .featured-tag { right:32px; }
 
+  /* EJ Designs Projection Panel */
+  .projection-panel { background:var(--bg2); border:1px solid var(--border); border-radius:16px; padding:20px; margin-bottom:20px; }
+  .projection-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+  .projection-header h3 { font-size:1rem; font-weight:700; margin:0; }
+  .projection-brand { font-size:0.6rem; color:var(--text2); letter-spacing:1px; text-transform:uppercase; }
+  .threshold-bar { position:relative; height:32px; background:var(--bg3); border-radius:12px; overflow:hidden; margin-bottom:8px; }
+  .threshold-fill { height:100%; border-radius:12px; transition:width 0.8s ease; display:flex; align-items:center; justify-content:flex-end; padding-right:8px; font-size:0.7rem; font-weight:700; color:white; min-width:28px; }
+  .threshold-marker { position:absolute; top:0; bottom:0; width:2px; background:white; opacity:0.7; z-index:2; }
+  .threshold-marker-label { position:absolute; top:-16px; font-size:0.55rem; color:var(--text2); transform:translateX(-50%); white-space:nowrap; }
+  .threshold-label { display:flex; justify-content:space-between; font-size:0.68rem; color:var(--text2); margin-bottom:14px; }
+  .prob-gauge { display:flex; gap:12px; margin-top:12px; }
+  .prob-card { flex:1; background:var(--bg3); border-radius:12px; padding:14px; text-align:center; }
+  .prob-card .prob-title { font-size:0.65rem; color:var(--text2); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px; }
+  .prob-pct { font-size:1.6rem; font-weight:800; }
+  .prob-card .prob-detail { font-size:0.6rem; color:var(--text2); margin-top:4px; }
+  .proj-party-row { display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid var(--border); }
+  .proj-party-row:last-child { border-bottom:none; }
+  .proj-party-symbol { width:24px; height:24px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:0.8rem; }
+  .proj-party-name { flex:1; font-size:0.75rem; font-weight:600; }
+  .proj-party-seats { font-size:0.85rem; font-weight:700; min-width:40px; text-align:right; }
+  .proj-party-bar { flex:2; height:8px; background:var(--bg3); border-radius:4px; overflow:hidden; }
+  .proj-party-bar-fill { height:100%; border-radius:4px; transition:width 0.6s ease; }
+
   .tab-bar { display:flex; gap:4px; margin-bottom:14px; flex-wrap:wrap; }
   .tab-btn { padding:7px 14px; border:1px solid var(--border); background:transparent; color:var(--text2); border-radius:8px; cursor:pointer; font-size:0.75rem; font-weight:500; font-family:inherit; transition:all 0.2s; }
   .tab-btn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
@@ -271,6 +294,10 @@
     <div class="section-title animate-in"><span>🗺️</span> Province-wise Breakdown</div>
     <div class="provinces-grid" id="provincesGrid"></div>
   </div>
+
+  <!-- EJ Designs Projection Panel -->
+  <div class="section-title animate-in"><span>📊</span> EJ Designs Projection</div>
+  <div class="projection-panel animate-in" id="projectionPanel"></div>
 
   <!-- Constituency Results — always visible, appears right below search when active -->
   <div class="section-title animate-in" id="constSectionTitle"><span>🔥</span> <span id="constSectionLabel">Constituency Results</span></div>
@@ -735,13 +762,36 @@ function isPinned(name) { return pinnedConsts.includes(name); }
 //          'likely_winner'  → mathematically impossible/very unlikely to lose
 //          'counting'       → still in play
 function getConstStatus(c) {
+  // 0. Explicit API status set during applyLiveData
+  if (c.apiStatus === 'won') return 'won';
+
   // 1. Officially declared — all booths counted
-  const parts = c.counted.match(/(\d+)\s*of\s*(\d+)/);
+  const parts = c.counted ? c.counted.match(/(\d+)\s*of\s*(\d+)/) : null;
   if (parts && parseInt(parts[1]) >= parseInt(parts[2])) return 'won';
   // 2. Explicit "won" tag from API source
   if (c.tag && c.tag.toLowerCase().includes('won')) return 'won';
 
-  // 3. Mathematical projection — "Likely Winner"
+  // 3. No booth data but has candidates — infer from PARTIES won count
+  //    If party's official "won" count includes this constituency's leader
+  if (!parts && c.candidates && c.candidates.length >= 2) {
+    const sorted = [...c.candidates].sort((a, b) => b.votes - a.votes);
+    const leader = sorted[0];
+    if (leader && leader.votes > 0) {
+      const party = PARTIES[leader.party];
+      if (party && party.won > 0) {
+        // Count how many constituencies this party leads
+        const partyLeadCount = ALL_CONSTITUENCIES.filter(x => {
+          if (!x.candidates || x.candidates.length === 0) return false;
+          const top = x.candidates.reduce((a, b) => a.votes > b.votes ? a : b);
+          return top.party === leader.party;
+        }).length;
+        // If won count covers all or most leads, treat as won
+        if (party.won >= partyLeadCount) return 'won';
+      }
+    }
+  }
+
+  // 4. Mathematical projection — "Likely Winner"
   if (parts && c.candidates && c.candidates.length >= 2) {
     const counted = parseInt(parts[1]);
     const total = parseInt(parts[2]);
@@ -753,19 +803,14 @@ function getConstStatus(c) {
     const runner = sorted[1];
     const gap = leader.votes - runner.votes;
 
-    // Estimate max votes remaining: use avg total votes/booth with 20% buffer
     const totalVotesSoFar = sorted.reduce((sum, cd) => sum + cd.votes, 0);
     const avgTotalPerBooth = counted > 0 ? totalVotesSoFar / counted : 500;
     const maxRemainingVotes = remaining * avgTotalPerBooth * 1.2;
 
-    // If gap > all possible remaining votes → mathematically uncatchable
     if (gap > maxRemainingVotes) return 'likely_winner';
 
-    // >80% counted AND leader has >2× runner-up's votes
     const pctCounted = counted / total;
     if (pctCounted >= 0.8 && leader.votes > runner.votes * 2) return 'likely_winner';
-
-    // >90% counted AND lead is >30% of runner's total
     if (pctCounted >= 0.9 && gap > runner.votes * 0.3) return 'likely_winner';
   }
 
@@ -1140,6 +1185,131 @@ function renderProvinces() {
   }).join('');
 }
 
+// ═══════════════════════════════════════════════════
+// EJ DESIGNS PROJECTION — AI-powered seat projections
+// ═══════════════════════════════════════════════════
+function renderProjection() {
+  const panel = document.getElementById('projectionPanel');
+  const TOTAL_FPTP = 165;
+  const TOTAL_PR = 110;
+  const TOTAL_SEATS = 275;
+  const MAJORITY = 138;
+  const TWO_THIRDS = 184;
+
+  // Gather current data from PARTIES
+  const partyData = Object.entries(PARTIES)
+    .map(([key, p]) => {
+      const total = (p.won || 0) + (p.leading || 0);
+      const prSeats = p.prSeats || 0;
+      return { key, ...p, total, prSeats };
+    })
+    .filter(p => p.total > 0 || p.prSeats > 0)
+    .sort((a, b) => (b.total + b.prSeats) - (a.total + a.prSeats));
+
+  // Calculate totals
+  const totalDeclared = partyData.reduce((s, p) => s + p.total, 0);
+  const remainingFPTP = Math.max(0, TOTAL_FPTP - totalDeclared);
+
+  // Leading party
+  const leader = partyData[0];
+  if (!leader) { panel.innerHTML = '<p style="color:var(--text2);text-align:center;padding:20px">Waiting for data...</p>'; return; }
+
+  // Project remaining seats based on current win rate per party
+  const projections = partyData.map(p => {
+    const winRate = totalDeclared > 0 ? p.total / totalDeclared : 0;
+    const projectedRemaining = Math.round(remainingFPTP * winRate);
+    const projectedDirect = p.total + projectedRemaining;
+    // PR seats from parliamentChartData if available
+    const prSeats = p.prSeats;
+    const projectedTotal = projectedDirect + prSeats;
+    return { ...p, projectedDirect, prSeats, projectedTotal, winRate };
+  });
+
+  // Leader's projected total
+  const leaderProj = projections[0];
+  const leaderTotal = leaderProj.projectedTotal;
+
+  // Probability calculation (simplified model based on current lead strength)
+  const leaderDirectPct = totalDeclared > 0 ? leader.total / totalDeclared : 0;
+  // Majority probability: based on how far above/below the threshold
+  const majProb = leaderTotal >= MAJORITY ? Math.min(99, 70 + (leaderTotal - MAJORITY) * 1.5)
+    : Math.max(1, 50 - (MAJORITY - leaderTotal) * 3);
+  const twoThirdProb = leaderTotal >= TWO_THIRDS ? Math.min(99, 60 + (leaderTotal - TWO_THIRDS) * 2)
+    : Math.max(1, 40 - (TWO_THIRDS - leaderTotal) * 2.5);
+
+  const leaderP = getParty(leader.key);
+  const fillPct = Math.min(100, leaderTotal / TOTAL_SEATS * 100);
+  const majMarker = MAJORITY / TOTAL_SEATS * 100;
+  const ttMarker = TWO_THIRDS / TOTAL_SEATS * 100;
+
+  // Party breakdown rows
+  const partyRows = projections.slice(0, 6).map(p => {
+    const pp = getParty(p.key);
+    const barPct = Math.max(2, p.projectedTotal / TOTAL_SEATS * 100);
+    return `<div class="proj-party-row">
+      <div class="proj-party-symbol" style="background:${pp.color}22">${pp.symbol}</div>
+      <div class="proj-party-name" style="color:${pp.color}">${pp.short}</div>
+      <div class="proj-party-bar"><div class="proj-party-bar-fill" style="width:${barPct}%;background:${pp.color}"></div></div>
+      <div class="proj-party-seats" style="color:${pp.color}">${p.projectedTotal}</div>
+    </div>`;
+  }).join('');
+
+  panel.innerHTML = `
+    <div class="projection-header">
+      <h3>📊 Seat Projection</h3>
+      <div class="projection-brand">EJ DESIGNS PROJECTION</div>
+    </div>
+
+    <div style="font-size:0.72rem;color:var(--text2);margin-bottom:12px">
+      ${totalDeclared} of ${TOTAL_FPTP} FPTP seats declared · ${remainingFPTP} remaining
+    </div>
+
+    <!-- Leader progress bar with majority/2/3 markers -->
+    <div style="font-size:0.7rem;font-weight:600;margin-bottom:4px;color:${leaderP.color}">
+      ${leaderP.symbol} ${leader.name} — Projected: ${leaderTotal} seats
+    </div>
+    <div class="threshold-bar">
+      <div class="threshold-fill" style="width:${fillPct}%;background:linear-gradient(90deg, ${leaderP.color}, ${leaderP.color}cc)">
+        ${leaderTotal}
+      </div>
+      <div class="threshold-marker" style="left:${majMarker}%">
+        <div class="threshold-marker-label">Majority (${MAJORITY})</div>
+      </div>
+      <div class="threshold-marker" style="left:${ttMarker}%">
+        <div class="threshold-marker-label">⅔ (${TWO_THIRDS})</div>
+      </div>
+    </div>
+    <div class="threshold-label">
+      <span>0</span>
+      <span>${TOTAL_SEATS} seats</span>
+    </div>
+
+    <!-- Probability gauges -->
+    <div class="prob-gauge">
+      <div class="prob-card">
+        <div class="prob-title">Majority</div>
+        <div class="prob-pct" style="color:${majProb >= 70 ? 'var(--green)' : majProb >= 40 ? '#f59e0b' : 'var(--red)'}">${Math.round(majProb)}%</div>
+        <div class="prob-detail">Need ${MAJORITY} of ${TOTAL_SEATS}</div>
+      </div>
+      <div class="prob-card">
+        <div class="prob-title">⅔ Majority</div>
+        <div class="prob-pct" style="color:${twoThirdProb >= 70 ? 'var(--green)' : twoThirdProb >= 40 ? '#f59e0b' : 'var(--red)'}">${Math.round(twoThirdProb)}%</div>
+        <div class="prob-detail">Need ${TWO_THIRDS} of ${TOTAL_SEATS}</div>
+      </div>
+    </div>
+
+    <!-- Party seat projections -->
+    <div style="margin-top:16px;font-size:0.72rem;font-weight:600;color:var(--text2);margin-bottom:8px">
+      Projected Seat Distribution (FPTP + PR)
+    </div>
+    ${partyRows}
+
+    <div style="margin-top:12px;font-size:0.58rem;color:var(--text2);text-align:center;font-style:italic">
+      Projection based on current counting trends. Remaining ${remainingFPTP} FPTP seats distributed proportionally. Not an official forecast.
+    </div>
+  `;
+}
+
 let activeTab = 'featured';
 
 // Returns all cards for the tab, but tags each with .match = true/false
@@ -1430,6 +1600,16 @@ function applyLiveData(apiData) {
     }
   }
 
+  // Update PR seat data from parliamentChartData
+  if (apiData.data.partySeats && Object.keys(apiData.data.partySeats).length > 0) {
+    for (const [key, data] of Object.entries(apiData.data.partySeats)) {
+      if (PARTIES[key]) {
+        PARTIES[key].prSeats = data.pr || 0;
+        PARTIES[key].totalSeats = data.total || 0;
+      }
+    }
+  }
+
   // Update constituency data — only accept HIGHER vote counts within sane limits
   // If a constituency doesn't exist locally, ADD it from live data (V3 returns all 165)
   if (apiData.data.constituencies && apiData.data.constituencies.length > 0) {
@@ -1677,6 +1857,7 @@ function renderAll() {
   updateTimestamp();
   renderSeatBar();
   renderPartyTable();
+  renderProjection();
   renderProvinces();
   renderPartyFilters();
   populateGeoProvince();
