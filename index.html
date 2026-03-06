@@ -965,18 +965,22 @@ function applyLiveData(apiData) {
   if (!apiData?.data) return false;
   let applied = false;
 
-  // Update party tallies if API returned them
+  // Update party tallies — only accept HIGHER numbers (votes only go up during counting)
   if (apiData.data.parties && Object.keys(apiData.data.parties).length > 0) {
     for (const [key, vals] of Object.entries(apiData.data.parties)) {
       if (PARTIES[key]) {
-        PARTIES[key].won = vals.won ?? PARTIES[key].won;
-        PARTIES[key].leading = vals.leading ?? PARTIES[key].leading;
-        applied = true;
+        const newTotal = (vals.won || 0) + (vals.leading || 0);
+        const oldTotal = PARTIES[key].won + PARTIES[key].leading;
+        if (newTotal >= oldTotal) {
+          PARTIES[key].won = Math.max(PARTIES[key].won, vals.won || 0);
+          PARTIES[key].leading = vals.leading ?? PARTIES[key].leading;
+          applied = true;
+        }
       }
     }
   }
 
-  // Update constituency data with fuzzy matching
+  // Update constituency data — only accept HIGHER vote counts per candidate
   if (apiData.data.constituencies && apiData.data.constituencies.length > 0) {
     for (const liveConst of apiData.data.constituencies) {
       const local = fuzzyMatchConst(liveConst.name);
@@ -984,7 +988,11 @@ function applyLiveData(apiData) {
         for (const liveCand of liveConst.candidates) {
           const localCand = fuzzyMatchCandidate(local.candidates, liveCand.name);
           if (localCand && liveCand.votes > 0) {
-            localCand.votes = liveCand.votes;
+            // Only update if new votes are HIGHER (votes never decrease)
+            if (liveCand.votes > localCand.votes) {
+              localCand.votes = liveCand.votes;
+              console.log(`[Data] ${localCand.name}: ${localCand.votes} → ${liveCand.votes}`);
+            }
             if (liveCand.photo) localCand.photoUrl = liveCand.photo;
           }
         }
@@ -1030,12 +1038,12 @@ function loadCachedData() {
       console.log('[Cache] Cache expired (>24h), using hardcoded defaults');
       return false;
     }
-    // Apply cached party data
+    // Apply cached party data — only if higher (votes never go down)
     if (cache.parties) {
       for (const [k, v] of Object.entries(cache.parties)) {
         if (PARTIES[k]) {
-          PARTIES[k].won = v.won ?? PARTIES[k].won;
-          PARTIES[k].leading = v.leading ?? PARTIES[k].leading;
+          PARTIES[k].won = Math.max(PARTIES[k].won, v.won || 0);
+          PARTIES[k].leading = Math.max(PARTIES[k].leading || 0, v.leading || 0);
         }
       }
     }
@@ -1054,7 +1062,7 @@ function loadCachedData() {
           if (cc.counted) local.counted = cc.counted;
           for (const cachedCand of (cc.candidates || [])) {
             const localCand = local.candidates.find(d => d.name === cachedCand.name);
-            if (localCand && cachedCand.votes > 0) localCand.votes = cachedCand.votes;
+            if (localCand && cachedCand.votes > localCand.votes) localCand.votes = cachedCand.votes;
           }
         }
       }
