@@ -1,32 +1,92 @@
 // ═══════════════════════════════════════════════════════════
-// Nepal Election 2082 — V3 Server-Side Accumulated Scraper
+// Nepal Election 2082 — V3.1 Server-Side Accumulated Scraper
 //
-// Combines quick scrape + deep scrape in one function.
-// Uses module-level globals to persist data across warm invocations.
+// UPDATED: NepseBarjar removed directWinData from main page.
+// Now uses static MASTER_LIST (165 constituencies) + deep scrape.
 //
 // Every call:
-//   1. Returns cached deep data immediately (if available)
-//   2. Always does quick scrape (main page: leaders + party seats)
-//   3. Scrapes ONE batch of constituency detail pages in background
-//   4. Merges into accumulated cache for next caller
+//   1. Quick scrape main page for parliamentChartData (party seats)
+//   2. Deep scrape ONE batch of constituency detail pages
+//   3. Merge into accumulated cache
+//   4. Return all available data
 //
-// Result: First caller gets quick data. After ~11 calls (one per batch),
-// the full 165-constituency dataset is built. All subsequent callers
-// get the complete picture instantly.
+// After ~11 calls, full 165-constituency dataset is built.
+// All users share the same server-side cache.
 // ═══════════════════════════════════════════════════════════
 
 const NEPSEBAJAR_URL = 'https://election.nepsebajar.com/en';
 const BATCH_SIZE = 15;
 
 // ═══ PERSISTENT STATE (survives across warm invocations) ═══
-let deepCache = {};          // pdniCenterId → constituency data
-let deepCacheTimestamp = 0;  // when cache was last updated
-let currentBatch = 0;        // which batch to scrape next
-let masterList = null;        // cached constituency list from main page
-let masterListTimestamp = 0;  // when master list was fetched
-let totalBatches = 11;
-let quickCache = null;        // last quick scrape result
+let deepCache = {};          // constituency id → constituency data
+let deepCacheTimestamp = 0;
+let currentBatch = 0;
+let quickCache = null;
 let quickCacheTimestamp = 0;
+
+const TOTAL_CONSTITUENCIES = 165;
+const TOTAL_BATCHES = Math.ceil(TOTAL_CONSTITUENCIES / BATCH_SIZE); // 11
+
+// ═══ STATIC MASTER LIST ═══
+// Maps pdniCenterId → [name, province]
+// Source: NepseBarjar centers.xml sitemap (165 constituencies)
+const MASTER_LIST = {
+  1:["Kathmandu-1","Bagmati"],2:["Kathmandu-7","Bagmati"],3:["Kathmandu-2","Bagmati"],
+  4:["Parsa-1","Madhesh"],5:["Kathmandu-9","Bagmati"],6:["Bhaktapur-1","Bagmati"],
+  7:["Sunsari-4","Koshi"],8:["Sunsari-1","Koshi"],9:["Kavrepalanchok-2","Bagmati"],
+  10:["Dhanusha-4","Madhesh"],11:["Jhapa-2","Koshi"],12:["Baitadi-1","Sudurpashchim"],
+  13:["Dang-2","Lumbini"],14:["Kathmandu-10","Bagmati"],15:["Rupandehi-2","Lumbini"],
+  16:["Saptari-2","Madhesh"],17:["Kathmandu-4","Bagmati"],18:["Achham-2","Sudurpashchim"],
+  19:["Jhapa-1","Koshi"],20:["Dadeldhura-1","Sudurpashchim"],21:["Saptari-1","Madhesh"],
+  22:["Bhojpur-1","Koshi"],23:["Bara-3","Madhesh"],24:["Rupandehi-3","Lumbini"],
+  25:["Morang-2","Koshi"],26:["Morang-6","Koshi"],27:["Morang-1","Koshi"],
+  28:["Siraha-1","Madhesh"],29:["Tanahun-1","Gandaki"],30:["Lalitpur-3","Bagmati"],
+  31:["Sunsari-3","Koshi"],32:["Dhanusha-3","Madhesh"],33:["Kapilvastu-3","Lumbini"],
+  34:["Saptari-3","Madhesh"],35:["Chitwan-3","Bagmati"],36:["Kailali-3","Sudurpashchim"],
+  37:["Kailali-5","Sudurpashchim"],38:["Kavrepalanchok-1","Bagmati"],39:["Udayapur-2","Koshi"],
+  40:["Chitwan-1","Bagmati"],41:["Kathmandu-8","Bagmati"],42:["Sarlahi-1","Madhesh"],
+  43:["Lalitpur-2","Bagmati"],44:["Makwanpur-1","Bagmati"],45:["Dolakha-1","Bagmati"],
+  46:["Manang-1","Gandaki"],47:["Jhapa-3","Koshi"],48:["Arghakhanchi-1","Lumbini"],
+  49:["Mahottari-4","Madhesh"],50:["Bhaktapur-2","Bagmati"],51:["Sindhupalchok-2","Bagmati"],
+  52:["Kathmandu-5","Bagmati"],53:["Bara-2","Madhesh"],54:["Chitwan-2","Bagmati"],
+  55:["Jhapa-5","Koshi"],56:["Nawalparasi West-2","Lumbini"],57:["Rupandehi-1","Lumbini"],
+  58:["Ilam-1","Koshi"],59:["Parsa-3","Madhesh"],60:["Morang-3","Koshi"],
+  61:["Palpa-2","Lumbini"],62:["Mahottari-2","Madhesh"],63:["Pyuthan-1","Lumbini"],
+  64:["Dhading-1","Bagmati"],65:["Mahottari-3","Madhesh"],66:["Rupandehi-5","Lumbini"],
+  67:["Palpa-1","Lumbini"],68:["Bara-4","Madhesh"],69:["Panchthar-1","Koshi"],
+  70:["Kapilvastu-2","Lumbini"],71:["Lalitpur-1","Bagmati"],72:["Terhathum-1","Koshi"],
+  73:["Dang-3","Lumbini"],74:["Bardiya-2","Lumbini"],75:["Kaski-2","Gandaki"],
+  76:["Rupandehi-4","Lumbini"],77:["Kathmandu-3","Bagmati"],78:["Parsa-2","Madhesh"],
+  79:["Dailekh-1","Karnali"],80:["Sunsari-2","Koshi"],81:["Dang-1","Lumbini"],
+  82:["Kaski-3","Gandaki"],83:["Kailali-4","Sudurpashchim"],84:["Jhapa-4","Koshi"],
+  85:["Solukhumbu-1","Koshi"],86:["Bardiya-1","Lumbini"],87:["Rasuwa-1","Bagmati"],
+  88:["Morang-4","Koshi"],89:["Nawalparasi East-1","Gandaki"],90:["Gulmi-1","Lumbini"],
+  91:["Sindhupalchok-1","Bagmati"],92:["Dhanusha-1","Madhesh"],93:["Dhading-2","Bagmati"],
+  94:["Darchula-1","Sudurpashchim"],95:["Makwanpur-2","Bagmati"],96:["Gorkha-1","Gandaki"],
+  97:["Syangja-1","Gandaki"],98:["Mahottari-1","Madhesh"],99:["Rautahat-1","Madhesh"],
+  100:["Kathmandu-6","Bagmati"],101:["Kanchanpur-2","Sudurpashchim"],102:["Ilam-2","Koshi"],
+  103:["Bara-1","Madhesh"],104:["Kapilvastu-1","Lumbini"],105:["Rautahat-2","Madhesh"],
+  106:["Parsa-4","Madhesh"],107:["Morang-5","Koshi"],108:["Sindhuli-2","Bagmati"],
+  109:["Ramechhap-1","Bagmati"],110:["Khotang-1","Koshi"],111:["Rautahat-3","Madhesh"],
+  112:["Gorkha-2","Gandaki"],113:["Parbat-1","Gandaki"],114:["Gulmi-2","Lumbini"],
+  115:["Sarlahi-2","Madhesh"],116:["Kaski-1","Gandaki"],117:["Kanchanpur-3","Sudurpashchim"],
+  118:["Banke-1","Lumbini"],119:["Myagdi-1","Gandaki"],120:["Banke-3","Lumbini"],
+  121:["Banke-2","Lumbini"],122:["Nawalparasi East-2","Gandaki"],123:["Siraha-2","Madhesh"],
+  124:["Sindhuli-1","Bagmati"],125:["Rautahat-4","Madhesh"],126:["Doti-1","Sudurpashchim"],
+  127:["Taplejung-1","Koshi"],128:["Nuwakot-2","Bagmati"],129:["Tanahun-2","Gandaki"],
+  130:["Achham-1","Sudurpashchim"],131:["Nawalparasi West-1","Lumbini"],132:["Salyan-1","Karnali"],
+  133:["Udayapur-1","Koshi"],134:["Surkhet-2","Karnali"],135:["Siraha-4","Madhesh"],
+  136:["Dhankuta-1","Koshi"],137:["Okhaldhunga-1","Koshi"],138:["Baglung-1","Gandaki"],
+  139:["Sankhuwasabha-1","Koshi"],140:["Dhanusha-2","Madhesh"],141:["Kailali-2","Sudurpashchim"],
+  142:["Sarlahi-4","Madhesh"],143:["Lamjung-1","Gandaki"],144:["Siraha-3","Madhesh"],
+  145:["Sarlahi-3","Madhesh"],146:["Nuwakot-1","Bagmati"],147:["Saptari-4","Madhesh"],
+  148:["Dailekh-2","Karnali"],149:["Rukum West-1","Karnali"],150:["Bajhang-1","Sudurpashchim"],
+  151:["Jajarkot-1","Karnali"],152:["Syangja-2","Gandaki"],153:["Rolpa-1","Lumbini"],
+  154:["Surkhet-1","Karnali"],155:["Kanchanpur-1","Sudurpashchim"],156:["Kalikot-1","Karnali"],
+  157:["Rukum East-1","Lumbini"],158:["Baglung-2","Gandaki"],159:["Bajura-1","Sudurpashchim"],
+  160:["Mustang-1","Gandaki"],161:["Kailali-1","Sudurpashchim"],162:["Dolpa-1","Karnali"],
+  163:["Mugu-1","Karnali"],164:["Humla-1","Karnali"],165:["Jumla-1","Karnali"]
+};
 
 // ── Party mappings ──
 const PARTY_ID_MAP = {
@@ -70,41 +130,6 @@ function normalizePartyByName(partyName) {
   return 'OTH';
 }
 
-// ── District/Province lookups ──
-const DCODE_TO_DISTRICT = {
-  1:'Taplejung',2:'Panchthar',3:'Ilam',4:'Jhapa',5:'Sankhuwasabha',6:'Terhathum',
-  7:'Bhojpur',8:'Dhankuta',9:'Morang',10:'Sunsari',11:'Solukhumbu',12:'Okhaldhunga',
-  13:'Khotang',14:'Udayapur',15:'Saptari',16:'Siraha',17:'Dhanusha',18:'Mahottari',
-  19:'Sarlahi',20:'Rautahat',21:'Bara',22:'Parsa',23:'Dolakha',24:'Sindhupalchok',
-  25:'Rasuwa',26:'Dhading',27:'Nuwakot',28:'Kathmandu',29:'Bhaktapur',30:'Lalitpur',
-  31:'Kavrepalanchok',32:'Ramechhap',33:'Sindhuli',34:'Makwanpur',35:'Chitwan',
-  36:'Manang',37:'Mustang',38:'Myagdi',39:'Kaski',40:'Lamjung',41:'Gorkha',
-  42:'Tanahu',43:'Nawalparasi_E',44:'Syangja',45:'Parbat',46:'Baglung',
-  47:'Gulmi',48:'Palpa',49:'Nawalparasi_W',50:'Rupandehi',51:'Kapilvastu',
-  52:'Arghakhanchi',53:'Pyuthan',54:'Rolpa',55:'Dang',56:'Banke',57:'Bardiya',
-  58:'Rukum_E',59:'Rukum_W',60:'Salyan',61:'Dolpa',62:'Jumla',63:'Kalikot',
-  64:'Mugu',65:'Humla',66:'Jajarkot',67:'Dailekh',68:'Surkhet',
-  69:'Bajura',70:'Bajhang',71:'Darchula',72:'Baitadi',73:'Dadeldhura',
-  74:'Doti',75:'Achham',76:'Kailali',77:'Kanchanpur',
-};
-
-const DCODE_TO_PROVINCE = {
-  1:'Koshi',2:'Koshi',3:'Koshi',4:'Koshi',5:'Koshi',6:'Koshi',7:'Koshi',
-  8:'Koshi',9:'Koshi',10:'Koshi',11:'Koshi',12:'Koshi',13:'Koshi',14:'Koshi',
-  15:'Madhesh',16:'Madhesh',17:'Madhesh',18:'Madhesh',19:'Madhesh',20:'Madhesh',
-  21:'Madhesh',22:'Madhesh',
-  23:'Bagmati',24:'Bagmati',25:'Bagmati',26:'Bagmati',27:'Bagmati',28:'Bagmati',
-  29:'Bagmati',30:'Bagmati',31:'Bagmati',32:'Bagmati',33:'Bagmati',34:'Bagmati',35:'Bagmati',
-  36:'Gandaki',37:'Gandaki',38:'Gandaki',39:'Gandaki',40:'Gandaki',41:'Gandaki',
-  42:'Gandaki',43:'Gandaki',44:'Gandaki',45:'Gandaki',46:'Gandaki',
-  47:'Lumbini',48:'Lumbini',49:'Lumbini',50:'Lumbini',51:'Lumbini',52:'Lumbini',
-  53:'Lumbini',54:'Lumbini',55:'Lumbini',56:'Lumbini',57:'Lumbini',58:'Lumbini',
-  59:'Karnali',60:'Karnali',61:'Karnali',62:'Karnali',63:'Karnali',64:'Karnali',
-  65:'Karnali',66:'Karnali',67:'Karnali',68:'Karnali',
-  69:'Sudurpashchim',70:'Sudurpashchim',71:'Sudurpashchim',72:'Sudurpashchim',
-  73:'Sudurpashchim',74:'Sudurpashchim',75:'Sudurpashchim',76:'Sudurpashchim',77:'Sudurpashchim',
-};
-
 async function fetchWithTimeout(url, timeoutMs = 6000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -112,7 +137,7 @@ async function fetchWithTimeout(url, timeoutMs = 6000) {
     const res = await fetch(url, {
       signal: controller.signal,
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; Nepal-Election-Dashboard/3.0)',
+        'User-Agent': 'Mozilla/5.0 (compatible; Nepal-Election-Dashboard/3.1)',
         'Accept': 'text/html, */*'
       },
       redirect: 'follow'
@@ -125,20 +150,19 @@ async function fetchWithTimeout(url, timeoutMs = 6000) {
   }
 }
 
-// ═══ QUICK SCRAPE: Main page data ═══
+// ═══ QUICK SCRAPE: Main page → party seat totals only ═══
 async function quickScrape() {
   const now = Date.now();
-  // Use cached quick data if less than 20 seconds old
-  if (quickCache && (now - quickCacheTimestamp) < 20000) {
+  if (quickCache && (now - quickCacheTimestamp) < 30000) {
     return quickCache;
   }
 
   const res = await fetchWithTimeout(NEPSEBAJAR_URL, 8000);
   const html = await res.text();
 
-  const result = { parties: {}, constituencies: [], partySeats: {} };
+  const result = { partySeats: {} };
 
-  // Parse parliamentChartData → party seat totals
+  // Parse parliamentChartData → party seat totals (still works)
   const pcMatch = html.match(/parliamentChartData\s*=\s*(\[[\s\S]*?\])\s*;/);
   if (pcMatch) {
     try {
@@ -155,144 +179,113 @@ async function quickScrape() {
     } catch (e) { /* ignore parse errors */ }
   }
 
-  // Parse directWinData → leaders + party won/leading
-  const dwMatch = html.match(/directWinData\s*=\s*(\[[\s\S]*?\])\s*;/);
-  if (dwMatch) {
-    try {
-      const dwData = JSON.parse(dwMatch[1]);
-      const partyWon = {}, partyLeading = {};
-
-      // Cache the master list for deep scraping
-      masterList = dwData;
-      masterListTimestamp = now;
-      totalBatches = Math.ceil(dwData.length / BATCH_SIZE);
-
-      for (const entry of dwData) {
-        const partyKey = normalizePartyById(entry.party_id, entry.party_name);
-        const district = DCODE_TO_DISTRICT[entry.DCODE] || `District${entry.DCODE}`;
-        const province = DCODE_TO_PROVINCE[entry.DCODE] || '';
-        const constName = `${district}-${entry.F_CONST}`;
-
-        if (entry.status === 'WIN') {
-          partyWon[partyKey] = (partyWon[partyKey] || 0) + 1;
-        } else {
-          partyLeading[partyKey] = (partyLeading[partyKey] || 0) + 1;
-        }
-
-        result.constituencies.push({
-          name: constName,
-          normalizedName: constName.toLowerCase().replace(/\s+/g, ''),
-          province: province,
-          counted: '',
-          pdniCenterId: entry.pdni_center_id,
-          candidates: [{
-            name: entry.candidate_name || '',
-            party: partyKey,
-            votes: entry.votes || 0,
-            photo: '',
-            partyColor: entry.party_color || ''
-          }]
-        });
-      }
-
-      const allKeys = new Set([...Object.keys(partyWon), ...Object.keys(partyLeading)]);
-      for (const key of allKeys) {
-        result.parties[key] = { won: partyWon[key] || 0, leading: partyLeading[key] || 0 };
-      }
-    } catch (e) { /* ignore parse errors */ }
-  }
-
   quickCache = result;
   quickCacheTimestamp = now;
   return result;
 }
 
-// ═══ DEEP SCRAPE: One batch of constituency detail pages ═══
-function parseConstituencyPage(html, entry) {
+// ═══ DEEP SCRAPE: Parse a single constituency page ═══
+function parseConstituencyPage(html, id) {
+  const master = MASTER_LIST[id];
+  if (!master) return null;
+  const [name, province] = master;
+
   const candidates = [];
-  const district = DCODE_TO_DISTRICT[entry.DCODE] || `District${entry.DCODE}`;
-  const province = DCODE_TO_PROVINCE[entry.DCODE] || '';
-  const constName = `${district}-${entry.F_CONST}`;
 
-  const candidateRegex = /candidate\/(\d+)\/([^/]+)\/elec2082[\s\S]*?<h4[^>]*>\s*([^<]+)\s*<\/h4>[\s\S]*?text-\[10px\][^>]*>\s*([^<]*)\s*<[\s\S]*?font-bold[^>]*>\s*([0-9,]+)\s*<\/span>/g;
+  // Split HTML into per-candidate blocks for reliable parsing
+  const blocks = html.split(/(?=candidate\/\d+\/[^/]+\/elec2082)/g);
+  for (const block of blocks) {
+    const linkMatch = block.match(/^candidate\/(\d+)\/([^/]+)\/elec2082/);
+    if (!linkMatch) continue;
 
-  let m;
-  while ((m = candidateRegex.exec(html)) !== null) {
+    const nameMatch = block.match(/<h4[^>]*>\s*([^<]+)\s*<\/h4>/);
+    if (!nameMatch) continue;
+
+    // Party: try <span>Party</span> first (leader card), then text-[10px] div content
+    let partyFull = '';
+    const spanParty = block.match(/text-\[10px\][\s\S]*?<span>([^<]+)<\/span>/);
+    if (spanParty) {
+      partyFull = spanParty[1].trim();
+    } else {
+      const divParty = block.match(/text-\[10px\][^>]*>\s*([^<]+)\s*<\/div>/);
+      if (divParty) partyFull = divParty[1].trim();
+    }
+
+    // Votes: find font-bold followed by number
+    const votesMatch = block.match(/font-bold[^>]*>\s*([0-9,]+)/);
+    if (!votesMatch) continue;
+
     candidates.push({
-      name: m[3].trim(),
-      party: normalizePartyByName(m[4].trim()),
-      partyFull: m[4].trim(),
-      votes: parseInt(m[5].replace(/,/g, '')) || 0,
-      candidateId: m[1],
-      slug: m[2],
+      name: nameMatch[1].trim(),
+      party: normalizePartyByName(partyFull),
+      partyFull,
+      votes: parseInt(votesMatch[1].replace(/,/g, '')) || 0,
+      candidateId: linkMatch[1],
+      slug: linkMatch[2],
       photo: ''
     });
   }
 
-  // Extract photo URLs
+  // Extract photo URLs — photo appears BEFORE candidate link in HTML
   const photoMap = {};
-  const photoRegex = /img\/candidates\/([^"]+\.jpg)[\s\S]*?candidate\/(\d+)\//g;
+  const photoRegex = /img\/candidates\/([^"\s]+\.jpg)[\s\S]*?candidate\/(\d+)\//g;
   let pm;
   while ((pm = photoRegex.exec(html)) !== null) {
-    photoMap[pm[2]] = `https://election.nepsebajar.com/img/candidates/${pm[1]}`;
-  }
-  const photoRegex2 = /candidate\/(\d+)\/[\s\S]*?img\/candidates\/([^"]+\.jpg)/g;
-  while ((pm = photoRegex2.exec(html)) !== null) {
-    if (!photoMap[pm[1]]) {
-      photoMap[pm[1]] = `https://election.nepsebajar.com/img/candidates/${pm[2]}`;
+    if (!photoMap[pm[2]]) {
+      photoMap[pm[2]] = `https://election.nepsebajar.com/img/candidates/${pm[1]}`;
     }
   }
   for (const c of candidates) {
     if (photoMap[c.candidateId]) c.photo = photoMap[c.candidateId];
   }
 
+  // Constituency pages don't show booth counting status
+  let counted = '';
+
   candidates.sort((a, b) => b.votes - a.votes);
 
   return {
-    name: constName,
-    normalizedName: constName.toLowerCase().replace(/\s+/g, ''),
+    name,
+    normalizedName: name.toLowerCase().replace(/\s+/g, ''),
     province,
-    district,
-    fConst: entry.F_CONST,
-    pdniCenterId: entry.pdni_center_id,
-    counted: '',
+    pdniCenterId: id,
+    counted,
     totalCandidates: candidates.length,
     candidates
   };
 }
 
+// ═══ DEEP SCRAPE: One batch of constituency pages ═══
 async function deepScrapeOneBatch() {
-  if (!masterList || masterList.length === 0) return { fetched: 0, failed: 0 };
-
+  const allIds = Object.keys(MASTER_LIST).map(Number);
   const startIdx = currentBatch * BATCH_SIZE;
-  const batchEntries = masterList.slice(startIdx, startIdx + BATCH_SIZE);
-  if (batchEntries.length === 0) {
-    currentBatch = 0; // wrap around
+  const batchIds = allIds.slice(startIdx, startIdx + BATCH_SIZE);
+
+  if (batchIds.length === 0) {
+    currentBatch = 0;
     return { fetched: 0, failed: 0 };
   }
 
   let fetched = 0, failed = 0;
 
   const results = await Promise.allSettled(
-    batchEntries.map(async (entry) => {
+    batchIds.map(async (id) => {
       try {
-        const url = `https://election.nepsebajar.com/en/pratinidhi/${entry.pdni_center_id}`;
+        const url = `https://election.nepsebajar.com/en/pratinidhi/${id}`;
         const res = await fetchWithTimeout(url);
         const html = await res.text();
-        return { ok: true, data: parseConstituencyPage(html, entry) };
+        return { ok: true, data: parseConstituencyPage(html, id) };
       } catch (err) {
-        return { ok: false, id: entry.pdni_center_id };
+        return { ok: false, id };
       }
     })
   );
 
   for (const r of results) {
-    if (r.status === 'fulfilled' && r.value.ok) {
+    if (r.status === 'fulfilled' && r.value.ok && r.value.data) {
       const constData = r.value.data;
-      // Only update cache if we got real candidate data
       if (constData.candidates.length > 0) {
         const existing = deepCache[constData.pdniCenterId];
-        // Only accept if more candidates or higher top votes (no regression)
         if (!existing ||
             constData.candidates.length > existing.candidates.length ||
             (constData.candidates[0]?.votes || 0) >= (existing.candidates[0]?.votes || 0)) {
@@ -306,25 +299,58 @@ async function deepScrapeOneBatch() {
     }
   }
 
-  // Advance batch (wraps around)
-  currentBatch = (currentBatch + 1) % totalBatches;
-
+  currentBatch = (currentBatch + 1) % TOTAL_BATCHES;
   return { fetched, failed };
 }
 
-// ═══ MERGE: Combine quick data with deep cache ═══
+// ═══ BUILD RESPONSE: Merge party seats + deep cache ═══
 function buildResponse(quick, deepResult, startTime) {
   const constituencies = [];
   const deepCacheSize = Object.keys(deepCache).length;
 
-  for (const qc of quick.constituencies) {
-    const deepData = deepCache[qc.pdniCenterId];
+  // Count party wins from deep-scraped constituency data (leader = winner for finalized results)
+  const partyWins = {};
+
+  // Emit all constituencies — deep cache first, then skeleton for uncached
+  for (const [idStr, [name, province]] of Object.entries(MASTER_LIST)) {
+    const id = parseInt(idStr);
+    const deepData = deepCache[id];
     if (deepData && deepData.candidates.length > 0) {
-      // Use deep data (full candidate list with photos)
       constituencies.push(deepData);
+      // Count the leading candidate's party as a win
+      const topCand = deepData.candidates[0];
+      if (topCand && topCand.votes > 0) {
+        partyWins[topCand.party] = (partyWins[topCand.party] || 0) + 1;
+      }
     } else {
-      // Fall back to quick data (leader only)
-      constituencies.push(qc);
+      constituencies.push({
+        name,
+        normalizedName: name.toLowerCase().replace(/\s+/g, ''),
+        province,
+        pdniCenterId: id,
+        counted: '',
+        candidates: []
+      });
+    }
+  }
+
+  // Build parties object — use parliamentChartData for official totals,
+  // deep cache wins as supplementary. Mark all deep-cache wins as "won"
+  // since election appears finalized.
+  const parties = {};
+  // From deep cache: all counted as "won" (results are finalized)
+  for (const [key, count] of Object.entries(partyWins)) {
+    parties[key] = { won: count, leading: 0 };
+  }
+  // From parliamentChartData: use direct seat counts as authoritative
+  if (quick.partySeats) {
+    for (const [key, data] of Object.entries(quick.partySeats)) {
+      if (!parties[key]) parties[key] = { won: 0, leading: 0 };
+      // If parliament data shows more direct wins than our deep cache count,
+      // use parliament data (more authoritative for seats we haven't scraped yet)
+      if (data.direct > (parties[key].won || 0)) {
+        parties[key].won = data.direct;
+      }
     }
   }
 
@@ -333,8 +359,7 @@ function buildResponse(quick, deepResult, startTime) {
     fetchDurationMs: Date.now() - startTime,
     sources: {
       successful: [{
-        name: 'nepsebajar-v3',
-        parties: Object.keys(quick.parties).length,
+        name: 'nepsebajar-v3.1',
         constituencies: constituencies.length,
         deepCached: deepCacheSize,
         partySeats: quick.partySeats
@@ -342,7 +367,7 @@ function buildResponse(quick, deepResult, startTime) {
       failed: []
     },
     data: {
-      parties: quick.parties,
+      parties,
       constituencies,
       partySeats: quick.partySeats,
       meta: {
@@ -354,9 +379,9 @@ function buildResponse(quick, deepResult, startTime) {
     },
     v3status: {
       deepCached: deepCacheSize,
-      totalConstituencies: quick.constituencies.length,
+      totalConstituencies: TOTAL_CONSTITUENCIES,
       currentBatch,
-      totalBatches,
+      totalBatches: TOTAL_BATCHES,
       deepCacheAge: deepCacheTimestamp ? Math.round((Date.now() - deepCacheTimestamp) / 1000) : null,
       deepBatchResult: deepResult
     }
@@ -379,35 +404,39 @@ exports.handler = async function(event, context) {
   const startTime = Date.now();
   const params = event.queryStringParameters || {};
 
-  // ?status=true → return just the cache status (for debugging)
+  // ?status=true → return cache status for debugging
   if (params.status) {
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
+        version: 'v3.1',
         deepCached: Object.keys(deepCache).length,
-        totalBatches,
+        totalConstituencies: TOTAL_CONSTITUENCIES,
+        totalBatches: TOTAL_BATCHES,
         currentBatch,
         deepCacheAge: deepCacheTimestamp ? Math.round((Date.now() - deepCacheTimestamp) / 1000) : null,
         quickCacheAge: quickCacheTimestamp ? Math.round((Date.now() - quickCacheTimestamp) / 1000) : null,
-        masterListAge: masterListTimestamp ? Math.round((Date.now() - masterListTimestamp) / 1000) : null,
       })
     };
   }
 
   try {
-    // Step 1: Quick scrape (always — fast, ~1s)
-    const quick = await quickScrape();
+    // Step 1: Quick scrape — party seat totals from main page
+    let quick;
+    try {
+      quick = await quickScrape();
+    } catch (e) {
+      // If main page fails, use cached or empty
+      quick = quickCache || { partySeats: {} };
+    }
 
-    // Step 2: Deep scrape one batch (piggybacks on this request)
-    // Skip if we've completed a full cycle recently (< 2 min ago) to be gentle
+    // Step 2: Deep scrape one batch
     let deepResult = null;
     const timeSinceDeep = Date.now() - deepCacheTimestamp;
     const deepCacheSize = Object.keys(deepCache).length;
-    const allCached = deepCacheSize >= (quick.constituencies?.length || 165);
+    const allCached = deepCacheSize >= TOTAL_CONSTITUENCIES;
 
-    // Always scrape if we don't have full coverage yet
-    // Once full, only scrape if cache is older than 2 minutes
     if (!allCached || timeSinceDeep > 120000) {
       deepResult = await deepScrapeOneBatch();
     }
@@ -420,10 +449,11 @@ exports.handler = async function(event, context) {
       body: JSON.stringify(response)
     };
   } catch (err) {
-    // If quick scrape fails but we have cached deep data, return that
-    if (Object.keys(deepCache).length > 0 && quickCache) {
-      const response = buildResponse(quickCache, null, startTime);
-      response.sources.failed = [{ name: 'nepsebajar-v3-refresh', error: err.message }];
+    // If we have any cached data, return it
+    if (Object.keys(deepCache).length > 0) {
+      const quick = quickCache || { partySeats: {} };
+      const response = buildResponse(quick, null, startTime);
+      response.sources.failed = [{ name: 'nepsebajar-v3.1-refresh', error: err.message }];
       return {
         statusCode: 200,
         headers,
@@ -435,7 +465,7 @@ exports.handler = async function(event, context) {
       statusCode: 502,
       headers,
       body: JSON.stringify({
-        error: 'V3 scrape failed',
+        error: 'V3.1 scrape failed',
         message: err.message,
         timestamp: new Date().toISOString()
       })
