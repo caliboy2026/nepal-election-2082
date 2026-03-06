@@ -239,7 +239,9 @@ function parseConstituencyPage(html, id) {
     if (photoMap[c.candidateId]) c.photo = photoMap[c.candidateId];
   }
 
-  // Constituency pages don't show booth counting status
+  // Check for "Elected" badge on the page → means result is declared
+  const hasElected = />\s*Elected\s*<\/span>/.test(html);
+  let apiStatus = hasElected ? 'won' : '';
   let counted = '';
 
   candidates.sort((a, b) => b.votes - a.votes);
@@ -249,6 +251,7 @@ function parseConstituencyPage(html, id) {
     normalizedName: name.toLowerCase().replace(/\s+/g, ''),
     province,
     pdniCenterId: id,
+    apiStatus,
     counted,
     totalCandidates: candidates.length,
     candidates
