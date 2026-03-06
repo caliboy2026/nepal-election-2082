@@ -1207,10 +1207,12 @@ function applyLiveData(apiData) {
   }
 
   // Update constituency data — only accept HIGHER vote counts within sane limits
+  // If a constituency doesn't exist locally, ADD it from live data (V3 returns all 165)
   if (apiData.data.constituencies && apiData.data.constituencies.length > 0) {
     for (const liveConst of apiData.data.constituencies) {
       const local = fuzzyMatchConst(liveConst.name);
       if (local && liveConst.candidates && liveConst.candidates.length > 0) {
+        // Existing constituency — update vote counts (only higher)
         for (const liveCand of liveConst.candidates) {
           const localCand = fuzzyMatchCandidate(local.candidates, liveCand.name);
           if (localCand && liveCand.votes > 0 && liveCand.votes < MAX_VOTES) {
@@ -1218,11 +1220,48 @@ function applyLiveData(apiData) {
               console.log(`[Data] ${localCand.name}: ${localCand.votes} → ${liveCand.votes}`);
               localCand.votes = liveCand.votes;
             }
-            if (liveCand.photo) localCand.photoUrl = liveCand.photo;
+            if (liveCand.photo) localCand.photo = liveCand.photo;
+          }
+        }
+        // If live has MORE candidates (deep scrape), replace entire list
+        if (liveConst.candidates.length > local.candidates.length) {
+          const topLocal = local.candidates[0];
+          const topLive = liveConst.candidates[0];
+          if (!topLocal || (topLive && topLive.votes >= topLocal.votes)) {
+            local.candidates = liveConst.candidates.map(lc => ({
+              name: lc.name,
+              party: lc.party,
+              votes: lc.votes,
+              photo: lc.photo || '👤'
+            }));
           }
         }
         if (liveConst.counted) local.counted = liveConst.counted;
+        if (liveConst.province) local.province = liveConst.province;
+        if (liveConst.pdniCenterId) local.pdniCenterId = liveConst.pdniCenterId;
         applied = true;
+      } else if (!local && liveConst.name && liveConst.candidates && liveConst.candidates.length > 0) {
+        // New constituency — add it to ALL_CONSTITUENCIES
+        const newConst = {
+          name: liveConst.name,
+          province: liveConst.province || '',
+          counted: liveConst.counted || '',
+          pdniCenterId: liveConst.pdniCenterId || null,
+          candidates: liveConst.candidates.map(lc => ({
+            name: lc.name,
+            party: lc.party,
+            votes: lc.votes,
+            photo: lc.photo || '👤'
+          })).filter(c => c.name)
+        };
+        if (newConst.candidates.length > 0) {
+          ALL_CONSTITUENCIES.push(newConst);
+          // Add to province index
+          const prov = newConst.province || 'Other';
+          if (!constByProvince[prov]) constByProvince[prov] = [];
+          constByProvince[prov].push(newConst);
+          applied = true;
+        }
       }
     }
   }
