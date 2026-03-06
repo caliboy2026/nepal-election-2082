@@ -1117,14 +1117,23 @@ function renderConstituencies() {
 // ═══════════════════════════════════════════════════
 
 let dataSource = 'local'; // 'live' or 'local'
+let dataVersion = ''; // 'v2', 'v1', or ''
+let deepStatus = ''; // e.g. '3/11' for batch progress
 let lastFetchOk = false;
 let fetchCount = 0;
 
 function updateTimestamp() {
   const now = new Date();
-  const badge = dataSource === 'live' ? ' · 🟢 LIVE' : ' · 🟡 LOCAL';
-  document.getElementById('lastUpdate').textContent =
-    now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) + ' NPT' + badge;
+  const timeStr = now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) + ' NPT';
+  let badge = '';
+  if (dataSource === 'live') {
+    const vLabel = dataVersion === 'v2' ? 'V2' : dataVersion === 'v1' ? 'V1' : 'LIVE';
+    badge = ` · <span style="color:#22c55e;font-weight:700">🟢 ${vLabel}</span>`;
+    if (deepStatus) badge += ` · <span style="color:#818cf8;font-size:0.65rem">DEEP ${deepStatus}</span>`;
+  } else {
+    badge = ' · <span style="color:#eab308">🟡 LOCAL</span>';
+  }
+  document.getElementById('lastUpdate').innerHTML = timeStr + badge;
 }
 
 // ═══ FUZZY CONSTITUENCY NAME MATCHING ═══
@@ -1310,6 +1319,7 @@ async function refreshData() {
       const apiData = await res.json();
       const applied = applyLiveData(apiData);
       dataSource = 'live';
+      dataVersion = 'v2';
       lastFetchOk = true;
       if (applied) cacheDataToStorage();
       const srcNames = (apiData.sources?.successful || []).map(s => s.name || s).join(', ');
@@ -1330,6 +1340,7 @@ async function refreshData() {
       const apiData = await res.json();
       const applied = applyLiveData(apiData);
       dataSource = 'live';
+      dataVersion = 'v1';
       lastFetchOk = true;
       if (applied) cacheDataToStorage();
       const srcNames = (apiData.sources?.successful || []).map(s => s.name || s).join(', ');
@@ -1440,7 +1451,9 @@ async function deepScrape() {
 
     // Advance to next batch (wraps around)
     deepBatch = (deepBatch + 1) % deepTotalBatches;
+    deepStatus = `${deepBatch}/${deepTotalBatches}`;
     deepLastRun = Date.now();
+    updateTimestamp(); // refresh the badge
   } catch (err) {
     console.log(`[Deep #${deepBatch}] Failed: ${err.message}`);
   }
