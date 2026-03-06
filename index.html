@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Nepal Election 2082 (2026) — Live Results Dashboard</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap');
   :root {
     --bg: #0f1117; --bg2: #161822; --bg3: #1e2030; --card: #1a1d2e;
     --border: #2a2d3e; --text: #e1e4ed; --text2: #8b8fa3;
@@ -115,7 +115,8 @@
   .hot-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(340px,1fr)); gap:12px; margin-bottom:22px; }
   .hot-card { background:var(--bg2); border:1px solid var(--border); border-radius:14px; padding:14px; position:relative; overflow:hidden; transition:border-color 0.3s; }
   .hot-card.featured { border-color:var(--gold); box-shadow:0 0 20px rgba(245,197,66,0.08); }
-  .hot-card.search-match { border-color:var(--blue); box-shadow:0 0 16px rgba(59,130,246,0.12); animation:fadeUp 0.3s ease forwards; }
+  .hot-card.search-match { border-color:var(--blue); box-shadow:0 0 16px rgba(59,130,246,0.12); animation:fadeUp 0.3s ease forwards; z-index:2; }
+  .hot-card.dimmed { opacity:0.15; filter:grayscale(0.6); pointer-events:none; transition:opacity 0.3s, filter 0.3s; }
   .hot-card .featured-tag { position:absolute; top:0; right:0; background:var(--gold); color:#000; font-size:0.58rem; font-weight:700; padding:3px 10px; border-radius:0 0 0 8px; text-transform:uppercase; }
   .constituency-name { font-weight:700; font-size:0.92rem; margin-bottom:10px; }
   .candidate-row { display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid rgba(255,255,255,0.04); }
@@ -148,8 +149,8 @@
   .footer-brand { display:flex; align-items:center; justify-content:center; gap:10px; margin-top:16px; padding-top:16px; border-top:1px solid rgba(255,255,255,0.06); }
   .ej-logo { display:inline-flex; align-items:center; gap:6px; text-decoration:none; color:var(--text2); transition:color 0.2s; }
   .ej-logo:hover { color:#4fc3f7; }
-  .ej-logo svg { width:28px; height:28px; }
-  .ej-logo-text { font-size:0.75rem; font-weight:600; letter-spacing:0.5px; }
+  .ej-logo img { width:40px; height:40px; object-fit:contain; border-radius:8px; }
+  .ej-logo-text { font-family:'Cormorant Garamond', Georgia, serif; font-size:0.95rem; font-weight:600; letter-spacing:2px; color:rgba(255,255,255,0.75); }
   .footer-copyright { font-size:0.62rem; color:var(--text2); opacity:0.7; margin-top:6px; }
 
   @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
@@ -273,17 +274,7 @@
   फागुन २१, २०८२ · March 5, 2026 · Built with data from 10+ Nepali news sources
   <div class="footer-brand">
     <a href="#" class="ej-logo" title="EvanJay Designs">
-      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="100" height="100" rx="18" fill="#1a1a2e"/>
-        <defs>
-          <linearGradient id="ejGrad" x1="0" y1="0" x2="100" y2="100">
-            <stop offset="0%" stop-color="#4fc3f7"/>
-            <stop offset="100%" stop-color="#7c4dff"/>
-          </linearGradient>
-        </defs>
-        <text x="13" y="72" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="56" fill="url(#ejGrad)">EJ</text>
-        <rect x="8" y="80" width="84" height="3" rx="1.5" fill="url(#ejGrad)" opacity="0.6"/>
-      </svg>
+      <img src="data:image/png;base64,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" alt="EJ" />
       <span class="ej-logo-text">EvanJay Designs</span>
     </a>
   </div>
@@ -572,13 +563,52 @@ ALL_CONSTITUENCIES.forEach(c => {
 // ═══════════════════════════════════════════════════
 // PARTY DETAIL POPUP — Click won/leading to see candidates
 // ═══════════════════════════════════════════════════
-function isConstWon(c) {
-  // A constituency is "won" (declared) if all booths are counted
+// ═══ CNN-STYLE WINNER PROJECTION ═══
+// Returns: 'won'           → all booths counted or officially declared
+//          'likely_winner'  → mathematically impossible/very unlikely to lose
+//          'counting'       → still in play
+function getConstStatus(c) {
+  // 1. Officially declared — all booths counted
   const parts = c.counted.match(/(\d+)\s*of\s*(\d+)/);
-  if (parts && parseInt(parts[1]) >= parseInt(parts[2])) return true;
-  // Also check for explicit tags
-  if (c.tag && c.tag.toLowerCase().includes('won')) return true;
-  return false;
+  if (parts && parseInt(parts[1]) >= parseInt(parts[2])) return 'won';
+  // 2. Explicit "won" tag from API source
+  if (c.tag && c.tag.toLowerCase().includes('won')) return 'won';
+
+  // 3. Mathematical projection — "Likely Winner"
+  if (parts && c.candidates && c.candidates.length >= 2) {
+    const counted = parseInt(parts[1]);
+    const total = parseInt(parts[2]);
+    const remaining = total - counted;
+    if (remaining <= 0) return 'won';
+
+    const sorted = [...c.candidates].sort((a, b) => b.votes - a.votes);
+    const leader = sorted[0];
+    const runner = sorted[1];
+    const gap = leader.votes - runner.votes;
+
+    // Estimate max votes remaining: use avg total votes/booth with 20% buffer
+    const totalVotesSoFar = sorted.reduce((sum, cd) => sum + cd.votes, 0);
+    const avgTotalPerBooth = counted > 0 ? totalVotesSoFar / counted : 500;
+    const maxRemainingVotes = remaining * avgTotalPerBooth * 1.2;
+
+    // If gap > all possible remaining votes → mathematically uncatchable
+    if (gap > maxRemainingVotes) return 'likely_winner';
+
+    // >80% counted AND leader has >2× runner-up's votes
+    const pctCounted = counted / total;
+    if (pctCounted >= 0.8 && leader.votes > runner.votes * 2) return 'likely_winner';
+
+    // >90% counted AND lead is >30% of runner's total
+    if (pctCounted >= 0.9 && gap > runner.votes * 0.3) return 'likely_winner';
+  }
+
+  return 'counting';
+}
+
+// Backward-compatible: treats both 'won' and 'likely_winner' as "won"
+function isConstWon(c) {
+  const status = getConstStatus(c);
+  return status === 'won' || status === 'likely_winner';
 }
 
 function showPartyDetail(partyKey, type) {
@@ -592,11 +622,11 @@ function showPartyDetail(partyKey, type) {
     const topCand = c.candidates.reduce((a, b) => a.votes > b.votes ? a : b);
     if (topCand.party !== partyKey) return;
 
-    const won = isConstWon(c);
+    const status = getConstStatus(c);
 
-    // Filter: "won" popup shows only declared winners, "leading" shows only still-counting
-    if (type === 'won' && !won) return;
-    if (type === 'leading' && won) return;
+    // "won" popup shows declared + likely winners; "leading" shows only counting
+    if (type === 'won' && status === 'counting') return;
+    if (type === 'leading' && status !== 'counting') return;
 
     matches.push({
       constituency: c.name,
@@ -605,21 +635,41 @@ function showPartyDetail(partyKey, type) {
       votes: topCand.votes,
       counted: c.counted,
       tag: c.tag || '',
-      won: won
+      status: status
     });
   });
 
-  matches.sort((a, b) => b.votes - a.votes);
+  // Sort: declared winners first, then likely winners, then by votes
+  matches.sort((a, b) => {
+    const order = { won: 0, likely_winner: 1, counting: 2 };
+    if (order[a.status] !== order[b.status]) return order[a.status] - order[b.status];
+    return b.votes - a.votes;
+  });
 
-  const label = type === 'won' ? 'Won' : 'Leading';
+  const label = type === 'won' ? 'Won / Projected' : 'Leading';
   const color = type === 'won' ? 'var(--green)' : 'var(--blue)';
   const officialCount = type === 'won' ? party.won : party.leading;
   const gap = officialCount - matches.length;
 
+  // Count sub-categories for the header
+  const declaredCount = matches.filter(m => m.status === 'won').length;
+  const likelyCount = matches.filter(m => m.status === 'likely_winner').length;
+
   let html = `<div class="popup-overlay" onclick="closePopup()"></div>`;
   html += `<div class="badge-popup">`;
   html += `<button class="popup-close" onclick="closePopup()">&times;</button>`;
-  html += `<h3>${party.symbol} ${party.name} — <span style="color:${color}">${officialCount} ${label}</span></h3>`;
+
+  if (type === 'won') {
+    html += `<h3>${party.symbol} ${party.name} — <span style="color:var(--green)">${officialCount} Won</span></h3>`;
+    if (declaredCount > 0 || likelyCount > 0) {
+      html += `<div style="padding:6px 12px;font-size:0.75rem;color:var(--text2);display:flex;gap:12px;margin-bottom:8px">`;
+      if (declaredCount > 0) html += `<span>✓ ${declaredCount} Declared</span>`;
+      if (likelyCount > 0) html += `<span style="color:#f59e0b">⚡ ${likelyCount} Projected Winner${likelyCount > 1 ? 's' : ''}</span>`;
+      html += `</div>`;
+    }
+  } else {
+    html += `<h3>${party.symbol} ${party.name} — <span style="color:${color}">${officialCount} ${label}</span></h3>`;
+  }
 
   if (gap > 0) {
     html += `<div style="padding:8px 12px;color:var(--text2);font-size:0.75rem;background:rgba(255,255,255,0.03);border-radius:8px;margin-bottom:12px">Showing ${matches.length} of ${officialCount} — ${gap} other constituencies not yet tracked in detail</div>`;
@@ -629,17 +679,26 @@ function showPartyDetail(partyKey, type) {
     html += `<div style="padding:16px;color:var(--text2);text-align:center">Detailed candidate data not yet available for these constituencies</div>`;
   } else {
     matches.forEach(m => {
-      const statusBadge = m.won
-        ? '<span style="color:var(--green);font-size:0.7rem;font-weight:700"> ✓ DECLARED</span>'
-        : `<span style="color:var(--text2);font-size:0.7rem"> ${m.counted}</span>`;
+      let statusBadge = '';
+      if (m.status === 'won') {
+        statusBadge = '<span style="color:var(--green);font-size:0.7rem;font-weight:700"> ✓ DECLARED</span>';
+      } else if (m.status === 'likely_winner') {
+        statusBadge = '<span style="color:#f59e0b;font-size:0.7rem;font-weight:700"> ⚡ PROJECTED WINNER</span>';
+      } else {
+        statusBadge = `<span style="color:var(--text2);font-size:0.7rem"> ${m.counted}</span>`;
+      }
       html += `<div class="popup-item">
         <div>
           <div class="popup-cand">${m.candidate}${statusBadge}</div>
-          <div class="popup-const">${m.constituency} · ${m.province}${m.tag ? ' · ' + m.tag : ''}</div>
+          <div class="popup-const">${m.constituency} · ${m.province}${m.counted && m.status !== 'won' ? ' · ' + m.counted : ''}${m.tag ? ' · ' + m.tag : ''}</div>
         </div>
         <div class="popup-votes">${m.votes.toLocaleString()} votes</div>
       </div>`;
     });
+  }
+
+  if (type === 'won' && likelyCount > 0) {
+    html += `<div style="padding:8px 12px;color:var(--text2);font-size:0.7rem;border-top:1px solid rgba(255,255,255,0.05);margin-top:8px">⚡ Projected = vote lead exceeds maximum possible remaining votes (similar to CNN/AP race calls)</div>`;
   }
 
   html += `</div>`;
@@ -915,6 +974,8 @@ function renderProvinces() {
 }
 
 let activeTab = 'featured';
+
+// Returns all cards for the tab, but tags each with .match = true/false
 function getFilteredConstituencies(tabId) {
   let list;
   if (tabId === 'featured') {
@@ -927,20 +988,32 @@ function getFilteredConstituencies(tabId) {
     list = ALL_CONSTITUENCIES.filter(c => c.province === tabId);
   }
 
-  // Apply party filter
-  if (partyFilter) {
-    list = list.filter(c => c.candidates.some(cand => cand.party === partyFilter));
-  }
+  const hasFilter = partyFilter || (searchQuery && searchQuery.length >= 2);
 
-  // Apply search filter (fuzzy: strips dots, dashes, spaces for flexible matching)
-  if (searchQuery && searchQuery.length >= 2) {
-    const terms = searchQuery.toLowerCase().split(/\s+/);
+  list.forEach(c => { c._match = true; });
+
+  if (hasFilter) {
     const normalize = s => s.toLowerCase().replace(/[.\-–—']/g, '').replace(/\s+/g, ' ');
-    list = list.filter(c => {
-      const raw = `${c.name} ${c.province||''} ${c.candidates.map(x=>`${x.name} ${x.aka||''} ${x.party}`).join(' ')}`.toLowerCase();
-      const norm = normalize(raw);
-      return terms.every(t => raw.includes(t) || norm.includes(normalize(t)));
+    list.forEach(c => {
+      let match = true;
+      // Party filter
+      if (partyFilter && !c.candidates.some(cand => cand.party === partyFilter)) {
+        match = false;
+      }
+      // Search filter
+      if (match && searchQuery && searchQuery.length >= 2) {
+        const terms = searchQuery.toLowerCase().split(/\s+/);
+        const raw = `${c.name} ${c.province||''} ${c.candidates.map(x=>`${x.name} ${x.aka||''} ${x.party}`).join(' ')}`.toLowerCase();
+        const norm = normalize(raw);
+        if (!terms.every(t => raw.includes(t) || norm.includes(normalize(t)))) {
+          match = false;
+        }
+      }
+      c._match = match;
     });
+
+    // Sort: matched cards first, dimmed cards after
+    list.sort((a, b) => (b._match ? 1 : 0) - (a._match ? 1 : 0));
   }
 
   return list;
@@ -969,7 +1042,15 @@ function switchTab(tabId) { activeTab=tabId; renderConstituencyTabs(); renderCon
 function renderConstituencies() {
   const grid = document.getElementById('hotGrid');
   const data = getFilteredConstituencies(activeTab);
+  const hasFilter = partyFilter || (searchQuery && searchQuery.length >= 2);
+  const anyMatch = data.some(c => c._match);
+
   if (!data || data.length === 0) {
+    grid.innerHTML = `<div class="no-results"><div class="big">🗳️</div>No matching results found.<br>Try a different search or filter.</div>`;
+    return;
+  }
+
+  if (hasFilter && !anyMatch) {
     grid.innerHTML = `<div class="no-results"><div class="big">🗳️</div>No matching results found.<br>Try a different search or filter.</div>`;
     return;
   }
@@ -978,17 +1059,27 @@ function renderConstituencies() {
     const maxVotes = Math.max(...c.candidates.map(x=>x.votes));
     const totalVotes = c.candidates.reduce((s,x)=>s+x.votes,0);
     const isFeatured = c.featured||false;
-    const isSearchMatch = (searchQuery && searchQuery.length >= 2) || partyFilter;
+    const isMatch = hasFilter && c._match;
+    const isDimmed = hasFilter && !c._match;
 
-    const rows = c.candidates.map((cand,i) => {
+    // When party filter active: show only that party's candidate by default
+    // with a toggle to expand and see all candidates
+    const cardId = c.name.replace(/[^a-zA-Z0-9]/g,'');
+    let displayCands = c.candidates;
+    let hiddenCands = [];
+    if (partyFilter && c._match) {
+      displayCands = c.candidates.filter(cd => cd.party === partyFilter);
+      hiddenCands = c.candidates.filter(cd => cd.party !== partyFilter);
+    }
+
+    const renderCandRow = (cand) => {
       const p = getParty(cand.party);
       const pct = totalVotes>0?(cand.votes/totalVotes*100).toFixed(1):0;
       const barPct = maxVotes>0?(cand.votes/maxVotes*100):0;
-      const isLeading = cand.votes===maxVotes && i===0;
-      const dimmed = partyFilter && cand.party!==partyFilter ? 'opacity:0.4;' : '';
+      const isLeading = cand.votes===maxVotes;
       const nameHtml = highlightText(cand.name, searchQuery);
 
-      return `<div class="candidate-row ${isLeading?'leading':''}" style="${dimmed}">
+      return `<div class="candidate-row ${isLeading?'leading':''}">
         <div class="candidate-photo" style="background:${p.color}22;font-size:1.2rem">${cand.photo}</div>
         <div class="candidate-details">
           <div class="candidate-name">${nameHtml}</div>
@@ -1003,13 +1094,20 @@ function renderConstituencies() {
           <div class="pct">${pct}%</div>
         </div>
       </div>`;
-    }).join('');
+    };
 
-    return `<div class="hot-card ${isFeatured?'featured':''} ${isSearchMatch?'search-match':''}">
+    const rows = displayCands.map(renderCandRow).join('');
+    const hiddenRows = hiddenCands.length > 0
+      ? `<div id="expand-${cardId}" style="display:none">${hiddenCands.map(renderCandRow).join('')}</div>
+         <button onclick="var el=document.getElementById('expand-${cardId}');var show=el.style.display==='none';el.style.display=show?'block':'none';this.textContent=show?'▲ Hide others':'▼ Show all ${c.candidates.length} candidates'" style="width:100%;background:none;border:1px solid var(--border);border-radius:8px;color:var(--text2);padding:6px;font-size:0.7rem;cursor:pointer;margin-top:6px;transition:color 0.2s">▼ Show all ${c.candidates.length} candidates</button>`
+      : '';
+
+    return `<div class="hot-card ${isFeatured?'featured':''} ${isMatch?'search-match':''} ${isDimmed?'dimmed':''}">
       ${c.tag?`<div class="featured-tag">${c.tag}</div>`:''}
       <div class="constituency-name">${highlightText(c.name, searchQuery)}</div>
       <div style="font-size:0.68rem;color:var(--text2);margin-bottom:8px">📦 ${c.counted}</div>
       ${rows}
+      ${hiddenRows}
     </div>`;
   }).join('');
 }
