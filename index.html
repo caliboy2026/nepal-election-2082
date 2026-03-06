@@ -614,12 +614,16 @@ function updateSearchStatus() {
   }
   if (hasSearch) {
     const q = searchQuery.toLowerCase();
-    const matchedParties = Object.entries(PARTIES).filter(([k,p]) =>
-      `${p.name} ${p.short} ${p.nepali}`.toLowerCase().includes(q)
-    );
+    const qNorm = q.replace(/[.\-–—']/g, '');
+    const normalize = s => s.toLowerCase().replace(/[.\-–—']/g, '');
+    const matchedParties = Object.entries(PARTIES).filter(([k,p]) => {
+      const raw = `${p.name} ${p.short} ${p.nepali}`.toLowerCase();
+      return raw.includes(q) || normalize(raw).includes(qNorm);
+    });
     const matchedCandNames = new Set();
     ALL_CONSTITUENCIES.forEach(c => c.candidates.forEach(cand => {
-      if (`${cand.name} ${cand.aka||''}`.toLowerCase().includes(q)) matchedCandNames.add(cand.name);
+      const raw = `${cand.name} ${cand.aka||''}`.toLowerCase();
+      if (raw.includes(q) || normalize(raw).includes(qNorm)) matchedCandNames.add(cand.name);
     }));
     matchedParties.forEach(([,p]) => {
       tags += `<span class="search-tag party-tag">${p.symbol} ${p.short}</span>`;
@@ -642,10 +646,12 @@ document.getElementById('searchInput').addEventListener('input', function(e) {
       // Auto-switch to "All" tab so search covers everything
       activeTab = 'all';
 
-      // Auto-detect party filter from search
+      // Auto-detect party filter from search (fuzzy)
       const qLower = q.toLowerCase();
+      const qNorm = qLower.replace(/[.\-–—']/g, '');
       const matchedParty = Object.entries(PARTIES).find(([k,p]) =>
-        p.short.toLowerCase() === qLower || p.name.toLowerCase() === qLower
+        p.short.toLowerCase() === qLower || p.name.toLowerCase() === qLower ||
+        p.short.toLowerCase().replace(/[.]/g,'') === qNorm
       );
       if (matchedParty) {
         partyFilter = matchedParty[0];
@@ -799,12 +805,14 @@ function getFilteredConstituencies(tabId) {
     list = list.filter(c => c.candidates.some(cand => cand.party === partyFilter));
   }
 
-  // Apply search filter
+  // Apply search filter (fuzzy: strips dots, dashes, spaces for flexible matching)
   if (searchQuery && searchQuery.length >= 2) {
     const terms = searchQuery.toLowerCase().split(/\s+/);
+    const normalize = s => s.toLowerCase().replace(/[.\-–—']/g, '').replace(/\s+/g, ' ');
     list = list.filter(c => {
-      const text = `${c.name} ${c.province||''} ${c.candidates.map(x=>`${x.name} ${x.aka||''} ${x.party}`).join(' ')}`.toLowerCase();
-      return terms.every(t => text.includes(t));
+      const raw = `${c.name} ${c.province||''} ${c.candidates.map(x=>`${x.name} ${x.aka||''} ${x.party}`).join(' ')}`.toLowerCase();
+      const norm = normalize(raw);
+      return terms.every(t => raw.includes(t) || norm.includes(normalize(t)));
     });
   }
 
