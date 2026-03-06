@@ -133,7 +133,13 @@
   .sources a { color:var(--blue); text-decoration:none; font-size:0.72rem; display:inline-block; margin-right:14px; margin-bottom:4px; }
   .sources a:hover { text-decoration:underline; }
 
-  footer { text-align:center; padding:22px; color:var(--text2); font-size:0.68rem; border-top:1px solid var(--border); margin-top:28px; }
+  footer { text-align:center; padding:28px 22px; color:var(--text2); font-size:0.68rem; border-top:1px solid var(--border); margin-top:28px; }
+  .footer-brand { display:flex; align-items:center; justify-content:center; gap:10px; margin-top:16px; padding-top:16px; border-top:1px solid rgba(255,255,255,0.06); }
+  .ej-logo { display:inline-flex; align-items:center; gap:6px; text-decoration:none; color:var(--text2); transition:color 0.2s; }
+  .ej-logo:hover { color:#4fc3f7; }
+  .ej-logo svg { width:28px; height:28px; }
+  .ej-logo-text { font-size:0.75rem; font-weight:600; letter-spacing:0.5px; }
+  .footer-copyright { font-size:0.62rem; color:var(--text2); opacity:0.7; margin-top:6px; }
 
   @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
   .animate-in { animation:fadeUp 0.4s ease forwards; }
@@ -254,6 +260,23 @@
   Nepal Election 2082 Dashboard — Data compiled from Ekantipur, Nepse Bajar, Sidhakura, ETC Nepal, Youths Forum & more.<br>
   Results are preliminary and may change as counting progresses. Official results from Election Commission Nepal.<br>
   फागुन २१, २०८२ · March 5, 2026 · Built with data from 10+ Nepali news sources
+  <div class="footer-brand">
+    <a href="#" class="ej-logo" title="EvanJay Designs">
+      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="100" height="100" rx="18" fill="#1a1a2e"/>
+        <defs>
+          <linearGradient id="ejGrad" x1="0" y1="0" x2="100" y2="100">
+            <stop offset="0%" stop-color="#4fc3f7"/>
+            <stop offset="100%" stop-color="#7c4dff"/>
+          </linearGradient>
+        </defs>
+        <text x="13" y="72" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="56" fill="url(#ejGrad)">EJ</text>
+        <rect x="8" y="80" width="84" height="3" rx="1.5" fill="url(#ejGrad)" opacity="0.6"/>
+      </svg>
+      <span class="ej-logo-text">EvanJay Designs</span>
+    </a>
+  </div>
+  <div class="footer-copyright">&copy; 2026 EvanJay Designs. All rights reserved.</div>
 </footer>
 
 <script>
@@ -267,19 +290,19 @@ const PARTIES = {
   RSP: {
     name: "Rastriya Swatantra Party", short: "RSP",
     nepali: "राष्ट्रिय स्वतन्त्र पार्टी", symbol: "🔔", symbolName: "Bell",
-    color: "#e74c3c", won: 1, leading: 46, seats2022: 21,
+    color: "#e74c3c", won: 1, leading: 52, seats2022: 21,
     leader: "Rabi Lamichhane", pmCandidate: "Balendra Shah"
   },
   NC: {
     name: "Nepali Congress", short: "NC",
     nepali: "नेपाली कांग्रेस", symbol: "🌳", symbolName: "Tree",
-    color: "#2196F3", won: 0, leading: 5, seats2022: 89,
+    color: "#2196F3", won: 0, leading: 8, seats2022: 89,
     leader: "Sher Bahadur Deuba", pmCandidate: "Gagan Thapa"
   },
   UML: {
     name: "CPN (Unified Marxist–Leninist)", short: "UML",
     nepali: "नेकपा (एमाले)", symbol: "☀️", symbolName: "Sun",
-    color: "#FF9800", won: 0, leading: 5, seats2022: 78,
+    color: "#FF9800", won: 0, leading: 4, seats2022: 78,
     leader: "K.P. Sharma Oli", pmCandidate: "K.P. Sharma Oli"
   },
   NCP: {
@@ -344,11 +367,11 @@ const ALL_CONSTITUENCIES = [
       {name:"K.P. Sharma Oli", party:"UML", votes:4087, photo:"🧔"},
       {name:"Mandhara Chimariya", party:"NC", votes:78, photo:"👤"}
     ]},
-  { name:"Chitwan-2", province:"Bagmati", tag:"RSP CHIEF", featured:true, counted:"35 of 48 booths",
+  { name:"Chitwan-2", province:"Bagmati", tag:"RSP CHIEF", featured:true, counted:"42 of 48 booths",
     candidates:[
-      {name:"Rabi Lamichhane", party:"RSP", votes:3963, photo:"🧑‍💼"},
-      {name:"Asmin Ghimire", party:"UML", votes:1947, photo:"👤"},
-      {name:"Mina Kumari Kharel", party:"NC", votes:1750, photo:"👩"},
+      {name:"Rabi Lamichhane", party:"RSP", votes:8015, photo:"🧑‍💼"},
+      {name:"Asmin Ghimire", party:"UML", votes:2590, photo:"👤"},
+      {name:"Mina Kumari Kharel", party:"NC", votes:2581, photo:"👩"},
       {name:"Pratap Gurung", party:"NCP", votes:1454, photo:"👤"}
     ]},
   { name:"Chitwan-3", province:"Bagmati", tag:"DAHAL SEAT", featured:true, counted:"28 of 39 booths",
@@ -356,15 +379,15 @@ const ALL_CONSTITUENCIES = [
       {name:"Sobita Gautam", party:"RSP", votes:3693, photo:"👩"},
       {name:"Renu Dahal", party:"NCP", votes:2263, photo:"👩"}
     ]},
-  { name:"Rukum East-1", province:"Lumbini", tag:"PRACHANDA", featured:true, counted:"24 of 34 booths",
+  { name:"Rukum East-1", province:"Lumbini", tag:"PRACHANDA", featured:true, counted:"30 of 34 booths",
     candidates:[
-      {name:"Pushpa Kamal Dahal (Prachanda)", party:"NCP", votes:1415, photo:"🧔", aka:"Prachanda"},
-      {name:"Lilamani Gautam", party:"UML", votes:431, photo:"👤"},
-      {name:"Kusum Devi Thapa", party:"NC", votes:417, photo:"👩"}
+      {name:"Pushpa Kamal Dahal (Prachanda)", party:"NCP", votes:4398, photo:"🧔", aka:"Prachanda"},
+      {name:"Kusum Devi Thapa", party:"NC", votes:1261, photo:"👩"},
+      {name:"Lilamani Gautam", party:"UML", votes:907, photo:"👤"}
     ]},
 
   // ═══ KATHMANDU VALLEY ═══
-  { name:"Kathmandu-1", province:"Bagmati", counted:"50 of 52 booths",
+  { name:"Kathmandu-1", province:"Bagmati", tag:"RSP WON", counted:"52 of 52 booths",
     candidates:[
       {name:"Ranju Neupane", party:"RSP", votes:15455, photo:"👩"},
       {name:"Prabal Thapa Chhetri", party:"NC", votes:6364, photo:"👤"},
@@ -435,11 +458,11 @@ const ALL_CONSTITUENCIES = [
       {name:"Sabin Shrestha", party:"RSP", votes:3100, photo:"👤"},
       {name:"Sunil Prajapati", party:"UML", votes:1340, photo:"👤"}
     ]},
-  { name:"Bhaktapur-2", province:"Bagmati", counted:"22 of 30 booths",
+  { name:"Bhaktapur-2", province:"Bagmati", counted:"28 of 30 booths",
     candidates:[
-      {name:"Rajiv Khatri", party:"RSP", votes:5060, photo:"👤"},
-      {name:"Mahesh Basnet", party:"UML", votes:2573, photo:"👤"},
-      {name:"Kabir Rana", party:"NC", votes:684, photo:"👤"}
+      {name:"Rajiv Khatri", party:"RSP", votes:4084, photo:"👤"},
+      {name:"Mahesh Basnet", party:"UML", votes:1819, photo:"👤"},
+      {name:"Kabir Rana", party:"NC", votes:826, photo:"👤"}
     ]},
 
   // ═══ OTHER KEY CONSTITUENCIES ═══
