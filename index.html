@@ -1080,7 +1080,11 @@ function renderConstituencies() {
       const nameHtml = highlightText(cand.name, searchQuery);
 
       return `<div class="candidate-row ${isLeading?'leading':''}">
-        <div class="candidate-photo" style="background:${p.color}22;font-size:1.2rem">${cand.photo}</div>
+        <div class="candidate-photo" style="background:${p.color}22;font-size:1.2rem">${
+          cand.photo && cand.photo.startsWith('http')
+            ? `<img src="${cand.photo}" alt="${cand.name}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
+            : (cand.photo || '👤')
+        }</div>
         <div class="candidate-details">
           <div class="candidate-name">${nameHtml}</div>
           <div class="candidate-party">
