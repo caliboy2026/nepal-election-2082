@@ -85,8 +85,19 @@
   .party-symbol { width:34px; height:34px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:1rem; flex-shrink:0; border:1px solid rgba(255,255,255,0.1); }
   .party-name-cell .pname { font-weight:600; font-size:0.82rem; }
   .party-name-cell .pshort { font-size:0.65rem; color:var(--text2); }
-  .won-badge { background:rgba(34,197,94,0.15); color:var(--green); padding:2px 8px; border-radius:12px; font-weight:700; font-size:0.82rem; }
-  .leading-badge { background:rgba(59,130,246,0.15); color:var(--blue); padding:2px 8px; border-radius:12px; font-weight:700; font-size:0.82rem; }
+  .won-badge { background:rgba(34,197,94,0.15); color:var(--green); padding:2px 8px; border-radius:12px; font-weight:700; font-size:0.82rem; cursor:pointer; transition:background 0.2s; }
+  .won-badge:hover { background:rgba(34,197,94,0.35); }
+  .leading-badge { background:rgba(59,130,246,0.15); color:var(--blue); padding:2px 8px; border-radius:12px; font-weight:700; font-size:0.82rem; cursor:pointer; transition:background 0.2s; }
+  .leading-badge:hover { background:rgba(59,130,246,0.35); }
+  .badge-popup { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:var(--bg2); border:1px solid var(--border); border-radius:16px; padding:24px; z-index:1000; max-width:500px; width:90%; max-height:70vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,0.5); }
+  .badge-popup h3 { margin:0 0 16px 0; font-size:1rem; }
+  .badge-popup .popup-close { position:absolute; top:12px; right:16px; background:none; border:none; color:var(--text2); font-size:1.2rem; cursor:pointer; }
+  .badge-popup .popup-item { padding:10px 12px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+  .badge-popup .popup-item:last-child { border-bottom:none; }
+  .badge-popup .popup-cand { font-weight:600; font-size:0.85rem; }
+  .badge-popup .popup-const { color:var(--text2); font-size:0.75rem; }
+  .badge-popup .popup-votes { color:var(--green); font-weight:700; font-size:0.85rem; }
+  .popup-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:999; }
   .total-badge { font-weight:800; font-size:0.95rem; }
   .change-up { color:var(--green); font-size:0.72rem; font-weight:600; }
   .change-down { color:var(--red); font-size:0.72rem; font-weight:600; }
@@ -559,6 +570,99 @@ ALL_CONSTITUENCIES.forEach(c => {
 });
 
 // ═══════════════════════════════════════════════════
+// PARTY DETAIL POPUP — Click won/leading to see candidates
+// ═══════════════════════════════════════════════════
+function isConstWon(c) {
+  // A constituency is "won" (declared) if all booths are counted
+  const parts = c.counted.match(/(\d+)\s*of\s*(\d+)/);
+  if (parts && parseInt(parts[1]) >= parseInt(parts[2])) return true;
+  // Also check for explicit tags
+  if (c.tag && c.tag.toLowerCase().includes('won')) return true;
+  return false;
+}
+
+function showPartyDetail(partyKey, type) {
+  const party = PARTIES[partyKey];
+  if (!party) return;
+
+  const matches = [];
+  ALL_CONSTITUENCIES.forEach(c => {
+    const partyCands = c.candidates.filter(d => d.party === partyKey);
+    if (partyCands.length === 0) return;
+    const topCand = c.candidates.reduce((a, b) => a.votes > b.votes ? a : b);
+    if (topCand.party !== partyKey) return;
+
+    const won = isConstWon(c);
+
+    // Filter: "won" popup shows only declared winners, "leading" shows only still-counting
+    if (type === 'won' && !won) return;
+    if (type === 'leading' && won) return;
+
+    matches.push({
+      constituency: c.name,
+      province: c.province,
+      candidate: topCand.name,
+      votes: topCand.votes,
+      counted: c.counted,
+      tag: c.tag || '',
+      won: won
+    });
+  });
+
+  matches.sort((a, b) => b.votes - a.votes);
+
+  const label = type === 'won' ? 'Won' : 'Leading';
+  const color = type === 'won' ? 'var(--green)' : 'var(--blue)';
+  const officialCount = type === 'won' ? party.won : party.leading;
+  const gap = officialCount - matches.length;
+
+  let html = `<div class="popup-overlay" onclick="closePopup()"></div>`;
+  html += `<div class="badge-popup">`;
+  html += `<button class="popup-close" onclick="closePopup()">&times;</button>`;
+  html += `<h3>${party.symbol} ${party.name} — <span style="color:${color}">${officialCount} ${label}</span></h3>`;
+
+  if (gap > 0) {
+    html += `<div style="padding:8px 12px;color:var(--text2);font-size:0.75rem;background:rgba(255,255,255,0.03);border-radius:8px;margin-bottom:12px">Showing ${matches.length} of ${officialCount} — ${gap} other constituencies not yet tracked in detail</div>`;
+  }
+
+  if (matches.length === 0) {
+    html += `<div style="padding:16px;color:var(--text2);text-align:center">Detailed candidate data not yet available for these constituencies</div>`;
+  } else {
+    matches.forEach(m => {
+      const statusBadge = m.won
+        ? '<span style="color:var(--green);font-size:0.7rem;font-weight:700"> ✓ DECLARED</span>'
+        : `<span style="color:var(--text2);font-size:0.7rem"> ${m.counted}</span>`;
+      html += `<div class="popup-item">
+        <div>
+          <div class="popup-cand">${m.candidate}${statusBadge}</div>
+          <div class="popup-const">${m.constituency} · ${m.province}${m.tag ? ' · ' + m.tag : ''}</div>
+        </div>
+        <div class="popup-votes">${m.votes.toLocaleString()} votes</div>
+      </div>`;
+    });
+  }
+
+  html += `</div>`;
+
+  // Remove any existing popup
+  closePopup();
+  const container = document.createElement('div');
+  container.id = 'partyPopup';
+  container.innerHTML = html;
+  document.body.appendChild(container);
+}
+
+function closePopup() {
+  const existing = document.getElementById('partyPopup');
+  if (existing) existing.remove();
+}
+
+// Close popup on Escape key
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closePopup();
+});
+
+// ═══════════════════════════════════════════════════
 // SEARCH ENGINE — Live In-Place Filtering
 // ═══════════════════════════════════════════════════
 
@@ -774,8 +878,8 @@ function renderPartyTable() {
           <div class="pshort">${p.short} · ${p.symbolName} · ${p.nepali}</div>
         </div>
       </div></td>
-      <td><span class="won-badge">${p.won}</span></td>
-      <td><span class="leading-badge">${p.leading}</span></td>
+      <td><span class="won-badge" onclick="showPartyDetail('${p.key}','won')" title="Click to see winners">${p.won}</span></td>
+      <td><span class="leading-badge" onclick="showPartyDetail('${p.key}','leading')" title="Click to see leading candidates">${p.leading}</span></td>
       <td><span class="total-badge" style="color:${p.color}">${p.total}</span></td>
       <td style="color:var(--text2)">${p.seats2022}</td>
       <td>${changeStr}</td>
