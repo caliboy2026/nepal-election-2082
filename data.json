@@ -1,0 +1,89 @@
+{
+  "timestamp": "2026-03-05T21:30:00.000Z",
+  "source": "manual-scrape",
+  "data": {
+    "parties": {
+      "RSP": { "won": 1, "leading": 50 },
+      "NC": { "won": 0, "leading": 5 },
+      "UML": { "won": 0, "leading": 5 },
+      "NCP": { "won": 0, "leading": 3 },
+      "RPP": { "won": 0, "leading": 1 },
+      "SSP": { "won": 0, "leading": 1 },
+      "JSP": { "won": 0, "leading": 0 },
+      "UNP": { "won": 0, "leading": 0 },
+      "OTH": { "won": 0, "leading": 1 }
+    },
+    "constituencies": [
+      {
+        "name": "Jhapa-5", "province": "Koshi", "counted": "38 of 43 booths",
+        "candidates": [
+          { "name": "Balendra Shah (Balen)", "party": "RSP", "votes": 10190 },
+          { "name": "K.P. Sharma Oli", "party": "UML", "votes": 4087 }
+        ]
+      },
+      {
+        "name": "Chitwan-2", "province": "Bagmati", "counted": "35 of 48 booths",
+        "candidates": [
+          { "name": "Rabi Lamichhane", "party": "RSP", "votes": 3963 },
+          { "name": "Asmin Ghimire", "party": "UML", "votes": 1947 }
+        ]
+      },
+      {
+        "name": "Chitwan-3", "province": "Bagmati", "counted": "28 of 39 booths",
+        "candidates": [
+          { "name": "Sobita Gautam", "party": "RSP", "votes": 3693 },
+          { "name": "Renu Dahal", "party": "NCP", "votes": 2263 }
+        ]
+      },
+      {
+        "name": "Rukum East-1", "province": "Lumbini", "counted": "24 of 34 booths",
+        "candidates": [
+          { "name": "Chet Narayan Gharti", "party": "RSP", "votes": 3500 },
+          { "name": "Pushpa Kamal Dahal", "party": "NCP", "votes": 2100 }
+        ]
+      },
+      {
+        "name": "Kathmandu-1", "province": "Bagmati", "counted": "92 of 109 booths",
+        "candidates": [
+          { "name": "Ranju Darshana", "party": "RSP", "votes": 15455 },
+          { "name": "Prakash Man Singh", "party": "NC", "votes": 7835 }
+        ]
+      },
+      {
+        "name": "Kathmandu-2", "province": "Bagmati", "counted": "45 of 66 booths",
+        "candidates": [
+          { "name": "Sarita Giri", "party": "RSP", "votes": 5200 },
+          { "name": "Gagan Thapa", "party": "NC", "votes": 4980 }
+        ]
+      },
+      {
+        "name": "Kathmandu-3", "province": "Bagmati", "counted": "50 of 78 booths",
+        "candidates": [
+          { "name": "Swarnim Wagle", "party": "RSP", "votes": 6700 },
+          { "name": "Bishnu Paudel", "party": "UML", "votes": 3200 }
+        ]
+      },
+      {
+        "name": "Lalitpur-1", "province": "Bagmati", "counted": "40 of 52 booths",
+        "candidates": [
+          { "name": "Kishor Thapa", "party": "RSP", "votes": 4500 },
+          { "name": "Rabiraj Bhandari", "party": "NC", "votes": 2100 }
+        ]
+      },
+      {
+        "name": "Bhaktapur-2", "province": "Bagmati", "counted": "30 of 40 booths",
+        "candidates": [
+          { "name": "Rajesh Shakya", "party": "RSP", "votes": 4300 },
+          { "name": "Prem Suwal", "party": "UML", "votes": 2800 }
+        ]
+      },
+      {
+        "name": "Rupandehi-2", "province": "Lumbini", "counted": "22 of 38 booths",
+        "candidates": [
+          { "name": "Tika Dutta Rai", "party": "RSP", "votes": 2900 },
+          { "name": "Kul Prasad K.C.", "party": "NC", "votes": 1750 }
+        ]
+      }
+    ]
+  }
+}

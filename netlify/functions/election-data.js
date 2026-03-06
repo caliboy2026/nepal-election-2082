@@ -1,10 +1,11 @@
 // ═══════════════════════════════════════════════════════════
-// Nepal Election 2082 — Hybrid Proxy API
-// Fetches live data from multiple sources, falls back gracefully
+// Nepal Election 2082 — Fail-Proof Proxy API v2
+// Multiple sources, fuzzy matching, graceful fallback
 // Deployed as a Netlify serverless function
 // ═══════════════════════════════════════════════════════════
 
 const SOURCES = [
+  // Primary: Ekantipur API (structured JSON)
   {
     name: 'ekantipur-party',
     url: 'https://election.ekantipur.com/api/results?type=party&lng=eng',
@@ -19,34 +20,88 @@ const SOURCES = [
     name: 'ekantipur-hotseats',
     url: 'https://election.ekantipur.com/api/hot-seats?lng=eng',
     type: 'hotseats'
+  },
+  // Secondary: Nepse Bajar (HTML scrape fallback)
+  {
+    name: 'nepsebajar',
+    url: 'https://election.nepsebajar.com/en',
+    type: 'html-scrape'
+  },
+  // Tertiary: Nepal Press election portal
+  {
+    name: 'nepalpress',
+    url: 'https://election.nepalpress.com/en/results',
+    type: 'html-scrape'
   }
 ];
 
-// Party name normalization map
+// Expanded party name normalization map (handles many variations)
 const PARTY_MAP = {
   'rastriya swatantra party': 'RSP',
   'rsp': 'RSP',
+  'swatantra': 'RSP',
   'nepali congress': 'NC',
+  'congress': 'NC',
+  'nc': 'NC',
   'cpn-uml': 'UML',
   'cpn (uml)': 'UML',
+  'cpn(uml)': 'UML',
   'nepal communist party (uml)': 'UML',
   'cpn (unified marxist-leninist)': 'UML',
+  'cpn (unified marxist–leninist)': 'UML',
+  'uml': 'UML',
   'nepali communist party': 'NCP',
   'nepal communist party (maoist centre)': 'NCP',
   'nepal communist party (maoist center)': 'NCP',
   'ncp (maoist centre)': 'NCP',
+  'ncp (maoist center)': 'NCP',
+  'cpn (maoist centre)': 'NCP',
+  'cpn (maoist center)': 'NCP',
+  'cpn-mc': 'NCP',
+  'maoist centre': 'NCP',
+  'maoist center': 'NCP',
+  'ncp': 'NCP',
   'rastriya prajatantra party': 'RPP',
+  'rpp': 'RPP',
   'shram sanskriti party': 'SSP',
+  'ssp': 'SSP',
   'janata samajwadi party': 'JSP',
+  'janata samajwadi party-nepal': 'JSP',
   'janata samjbadi party-nepal': 'JSP',
+  'jsp': 'JSP',
   'ujyalo nepal party': 'UNP',
   'ujjyalo nepal party': 'UNP',
+  'unp': 'UNP',
 };
 
 function normalizeParty(name) {
   if (!name) return 'OTH';
   const lower = name.toLowerCase().trim();
-  return PARTY_MAP[lower] || 'OTH';
+  // Direct match
+  if (PARTY_MAP[lower]) return PARTY_MAP[lower];
+  // Partial match — check if any key is contained in the name
+  for (const [key, val] of Object.entries(PARTY_MAP)) {
+    if (lower.includes(key) || key.includes(lower)) return val;
+  }
+  return 'OTH';
+}
+
+// ═══ FUZZY CONSTITUENCY NAME MATCHING ═══
+// Normalizes constituency names so "Jhapa-5", "Jhapa - 5", "jhapa5" all match
+function normalizeConstName(name) {
+  if (!name) return '';
+  return name
+    .toLowerCase()
+    .replace(/\s+/g, '')      // remove all spaces
+    .replace(/[-–—]+/g, '-')  // normalize dashes
+    .replace(/[^\w-]/g, '')   // remove special chars
+    .trim();
+}
+
+// Build constituency name from district + number (handles Ekantipur format)
+function buildConstName(district, number) {
+  if (!district || !number) return '';
+  return normalizeConstName(`${district}-${number}`);
 }
 
 async function fetchWithTimeout(url, timeoutMs = 8000) {
@@ -56,7 +111,7 @@ async function fetchWithTimeout(url, timeoutMs = 8000) {
     const res = await fetch(url, {
       signal: controller.signal,
       headers: {
-        'User-Agent': 'Nepal-Election-Dashboard/1.0',
+        'User-Agent': 'Nepal-Election-Dashboard/2.0',
         'Accept': 'application/json, text/html, */*'
       }
     });
@@ -85,6 +140,8 @@ async function fetchSource(source) {
       /window\.__data__\s*=\s*({[\s\S]*?});/,
       /window\.__INITIAL_STATE__\s*=\s*({[\s\S]*?});/,
       /<script[^>]*id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/,
+      /var\s+competiviveDist\s*=\s*({[\s\S]*?});/,
+      /var\s+partyWiseData\s*=\s*(\[[\s\S]*?\]);/,
     ];
 
     for (const pattern of jsonPatterns) {
@@ -96,37 +153,73 @@ async function fetchSource(source) {
       }
     }
 
-    // Return raw HTML for parsing
+    // Try to scrape party results from HTML tables
+    const scrapedParties = scrapePartyFromHTML(html);
+    if (scrapedParties && Object.keys(scrapedParties).length > 0) {
+      return { source: source.name, type: 'party', data: { results: scrapedParties }, ok: true };
+    }
+
     return { source: source.name, type: source.type, data: html, ok: true, format: 'html' };
   } catch (err) {
     return { source: source.name, type: source.type, ok: false, error: err.message };
   }
 }
 
+// Scrape party results from HTML content (fallback for non-JSON sources)
+function scrapePartyFromHTML(html) {
+  const parties = {};
+  // Pattern: party name followed by won/lead numbers (common in election sites)
+  const patterns = [
+    /(?:Rastriya Swatantra|RSP)[\s\S]*?(?:Won|Win)[:\s]*(\d+)[\s\S]*?(?:Lead|Leading)[:\s]*(\d+)/gi,
+    /(?:Nepali Congress|NC)[\s\S]*?(?:Won|Win)[:\s]*(\d+)[\s\S]*?(?:Lead|Leading)[:\s]*(\d+)/gi,
+    /(?:CPN[- ]*UML|UML)[\s\S]*?(?:Won|Win)[:\s]*(\d+)[\s\S]*?(?:Lead|Leading)[:\s]*(\d+)/gi,
+  ];
+  const partyKeys = ['RSP', 'NC', 'UML'];
+  patterns.forEach((pat, i) => {
+    const match = pat.exec(html);
+    if (match) {
+      parties[partyKeys[i]] = { won: parseInt(match[1]) || 0, leading: parseInt(match[2]) || 0 };
+    }
+  });
+  return parties;
+}
+
 function parsePartyResults(sourceData) {
   const parties = {};
 
   for (const result of sourceData) {
-    if (!result.ok || result.type !== 'party') continue;
+    if (!result.ok) continue;
     const data = result.data;
 
-    // Handle ekantipur party format
+    // Handle ekantipur party format: { party_wise_results: [...] }
     if (data?.party_wise_results) {
       for (const p of data.party_wise_results) {
         const key = normalizeParty(p.party_name);
         if (!parties[key]) parties[key] = { won: 0, leading: 0 };
-        parties[key].won = Math.max(parties[key].won, p.wins || 0);
-        parties[key].leading = Math.max(parties[key].leading, p.leading || p.lead || 0);
+        parties[key].won = Math.max(parties[key].won, p.wins || p.Win || 0);
+        parties[key].leading = Math.max(parties[key].leading, p.leading || p.lead || p.Lead || 0);
       }
     }
 
-    // Handle direct object format
+    // Handle direct object format: { results: { partyName: { won, leading } } }
     if (data?.results) {
       for (const [name, vals] of Object.entries(data.results)) {
         const key = normalizeParty(name);
         if (!parties[key]) parties[key] = { won: 0, leading: 0 };
-        parties[key].won = Math.max(parties[key].won, vals.win || vals.won || 0);
-        parties[key].leading = Math.max(parties[key].leading, vals.lead || vals.leading || 0);
+        parties[key].won = Math.max(parties[key].won, vals.win || vals.won || vals.Win || 0);
+        parties[key].leading = Math.max(parties[key].leading, vals.lead || vals.leading || vals.Lead || 0);
+      }
+    }
+
+    // Handle array format: [{ party_name, Win, Lead }]
+    if (Array.isArray(data)) {
+      for (const p of data) {
+        if (p.party_name || p.partyName) {
+          const key = normalizeParty(p.party_name || p.partyName);
+          if (!parties[key]) parties[key] = { won: 0, leading: 0 };
+          parties[key].won = Math.max(parties[key].won, p.Win || p.won || p.wins || 0);
+          parties[key].leading = Math.max(parties[key].leading, p.Lead || p.lead || p.leading || 0);
+        }
       }
     }
   }
@@ -141,13 +234,38 @@ function parseConstituencyResults(sourceData) {
     if (!result.ok) continue;
     const data = result.data;
 
+    // Handle hotseats / competitive districts format (Ekantipur)
+    // Format: { "jhapa-5": [ { name, party, vote_count, ... } ], ... }
+    if (result.type === 'hotseats' && typeof data === 'object' && !Array.isArray(data)) {
+      for (const [constKey, candidates] of Object.entries(data)) {
+        if (Array.isArray(candidates) && candidates.length > 0) {
+          const first = candidates[0];
+          const constName = constKey.replace(/-/g, '-').replace(/\b\w/g, c => c.toUpperCase());
+          constituencies.push({
+            name: constName,
+            normalizedName: normalizeConstName(constKey),
+            province: first.province || first.pradesh_name || '',
+            counted: '',
+            candidates: candidates.map(cand => ({
+              name: cand.name || cand.candidate_name,
+              party: normalizeParty(cand.party || cand.party_name),
+              votes: cand.vote_count || cand.votes || 0,
+              photo: cand.image || cand.photo || ''
+            }))
+          });
+        }
+      }
+    }
+
     // Handle array of constituencies
     if (Array.isArray(data)) {
       for (const c of data) {
-        if (c.constituency || c.name) {
+        if (c.constituency || c.name || c.district_name) {
+          const name = c.constituency || c.name || `${c.district_name}-${c.region_num}`;
           constituencies.push({
-            name: c.constituency || c.name,
-            province: c.province || c.state || '',
+            name: name,
+            normalizedName: normalizeConstName(name),
+            province: c.province || c.state || c.pradesh_name || '',
             counted: c.counted || c.booths_counted || '',
             candidates: (c.candidates || []).map(cand => ({
               name: cand.name || cand.candidate_name,
@@ -163,8 +281,10 @@ function parseConstituencyResults(sourceData) {
     // Handle nested constituency format
     if (data?.constituencies) {
       for (const c of data.constituencies) {
+        const name = c.name || c.constituency;
         constituencies.push({
-          name: c.name || c.constituency,
+          name: name,
+          normalizedName: normalizeConstName(name),
           province: c.province || '',
           counted: c.counted || '',
           candidates: (c.candidates || []).map(cand => ({
@@ -176,9 +296,46 @@ function parseConstituencyResults(sourceData) {
         });
       }
     }
+
+    // Handle per-candidate format (flat list from Ekantipur constituency endpoint)
+    // Format: [{ name, party_name, vote_count, district_name, region_num, ... }]
+    if (result.type === 'constituency' && Array.isArray(data)) {
+      const grouped = {};
+      for (const cand of data) {
+        if (cand.district_name && cand.region_num) {
+          const constName = `${cand.district_name}-${cand.region_num}`;
+          const normName = normalizeConstName(constName);
+          if (!grouped[normName]) {
+            grouped[normName] = {
+              name: constName.replace(/\b\w/g, c => c.toUpperCase()),
+              normalizedName: normName,
+              province: cand.pradesh_name || '',
+              counted: '',
+              candidates: []
+            };
+          }
+          grouped[normName].candidates.push({
+            name: cand.name,
+            party: normalizeParty(cand.party_name),
+            votes: cand.vote_count || 0,
+            photo: cand.image || ''
+          });
+        }
+      }
+      constituencies.push(...Object.values(grouped));
+    }
   }
 
-  return constituencies;
+  // Deduplicate: keep the entry with more candidate data for each constituency
+  const deduped = {};
+  for (const c of constituencies) {
+    const key = c.normalizedName || normalizeConstName(c.name);
+    if (!deduped[key] || c.candidates.length > deduped[key].candidates.length) {
+      deduped[key] = c;
+    }
+  }
+
+  return Object.values(deduped);
 }
 
 exports.handler = async function(event, context) {
@@ -196,15 +353,21 @@ exports.handler = async function(event, context) {
 
   const startTime = Date.now();
 
-  // Fetch all sources in parallel
-  const results = await Promise.all(SOURCES.map(fetchSource));
+  // Fetch all sources in parallel (fail individually, not collectively)
+  const results = await Promise.allSettled(SOURCES.map(fetchSource));
+  const resolvedResults = results
+    .filter(r => r.status === 'fulfilled')
+    .map(r => r.value);
 
-  const successfulSources = results.filter(r => r.ok).map(r => r.source);
-  const failedSources = results.filter(r => !r.ok).map(r => ({ source: r.source, error: r.error }));
+  const successfulSources = resolvedResults.filter(r => r.ok).map(r => r.source);
+  const failedSources = [
+    ...resolvedResults.filter(r => !r.ok).map(r => ({ source: r.source, error: r.error })),
+    ...results.filter(r => r.status === 'rejected').map((r, i) => ({ source: SOURCES[i]?.name, error: r.reason?.message }))
+  ];
 
   // Parse and merge data
-  const parties = parsePartyResults(results);
-  const constituencies = parseConstituencyResults(results);
+  const parties = parsePartyResults(resolvedResults);
+  const constituencies = parseConstituencyResults(resolvedResults);
 
   const response = {
     timestamp: new Date().toISOString(),

@@ -894,7 +894,42 @@ function updateTimestamp() {
     now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) + ' NPT' + badge;
 }
 
-// Apply live API data onto our local data structures
+// ═══ FUZZY CONSTITUENCY NAME MATCHING ═══
+function normalizeConstName(name) {
+  if (!name) return '';
+  return name.toLowerCase().replace(/\s+/g, '').replace(/[-–—]+/g, '-').replace(/[^\w-]/g, '').trim();
+}
+
+function fuzzyMatchConst(liveName) {
+  const normLive = normalizeConstName(liveName);
+  // Try exact normalized match first
+  let match = ALL_CONSTITUENCIES.find(c => normalizeConstName(c.name) === normLive);
+  if (match) return match;
+  // Try partial match (e.g., "jhapa-5" matches "Jhapa-5")
+  match = ALL_CONSTITUENCIES.find(c => {
+    const normLocal = normalizeConstName(c.name);
+    return normLocal.includes(normLive) || normLive.includes(normLocal);
+  });
+  return match || null;
+}
+
+function fuzzyMatchCandidate(localCandidates, liveName) {
+  if (!liveName) return null;
+  const lower = liveName.toLowerCase().trim();
+  const firstName = lower.split(' ')[0];
+  const lastName = lower.split(' ').pop();
+  // Exact match
+  let match = localCandidates.find(c => c.name.toLowerCase() === lower);
+  if (match) return match;
+  // First name match
+  match = localCandidates.find(c => c.name.toLowerCase().includes(firstName));
+  if (match) return match;
+  // Last name match (handles "Shah" matching "Balendra Shah")
+  match = localCandidates.find(c => c.name.toLowerCase().includes(lastName));
+  return match || null;
+}
+
+// Apply live API data onto our local data structures (with fuzzy matching)
 function applyLiveData(apiData) {
   if (!apiData?.data) return false;
   let applied = false;
@@ -910,18 +945,13 @@ function applyLiveData(apiData) {
     }
   }
 
-  // Update constituency data if API returned them
+  // Update constituency data with fuzzy matching
   if (apiData.data.constituencies && apiData.data.constituencies.length > 0) {
     for (const liveConst of apiData.data.constituencies) {
-      // Find matching local constituency
-      const local = ALL_CONSTITUENCIES.find(c =>
-        c.name.toLowerCase() === (liveConst.name || '').toLowerCase()
-      );
+      const local = fuzzyMatchConst(liveConst.name);
       if (local && liveConst.candidates && liveConst.candidates.length > 0) {
         for (const liveCand of liveConst.candidates) {
-          const localCand = local.candidates.find(c =>
-            c.name.toLowerCase().includes(liveCand.name?.toLowerCase()?.split(' ')[0] || '___')
-          );
+          const localCand = fuzzyMatchCandidate(local.candidates, liveCand.name);
           if (localCand && liveCand.votes > 0) {
             localCand.votes = liveCand.votes;
             if (liveCand.photo) localCand.photoUrl = liveCand.photo;
@@ -1003,9 +1033,11 @@ function loadCachedData() {
   } catch (e) { console.warn('[Cache] Could not load:', e.message); return false; }
 }
 
-// Main refresh: try API first, keep last known data if unavailable (no fake simulation)
+// Three-layer refresh: Live API → static data.json → keep last known data
 async function refreshData() {
   fetchCount++;
+
+  // Layer 1: Try live serverless API
   try {
     const res = await fetch('/.netlify/functions/election-data', {
       signal: AbortSignal.timeout(10000)
@@ -1016,21 +1048,39 @@ async function refreshData() {
       if (applied) {
         dataSource = 'live';
         lastFetchOk = true;
-        cacheDataToStorage(); // Save fresh data to localStorage
-        console.log(`[Refresh #${fetchCount}] Live data applied from: ${apiData.sources?.successful?.join(', ')} (${apiData.fetchDurationMs}ms)`);
-      } else {
-        dataSource = 'local';
-        console.log(`[Refresh #${fetchCount}] API responded but no parseable data, keeping last known data`);
+        cacheDataToStorage();
+        console.log(`[Refresh #${fetchCount}] 🟢 LIVE data from: ${apiData.sources?.successful?.join(', ')} (${apiData.fetchDurationMs}ms)`);
+        renderAll();
+        return;
       }
-    } else {
-      throw new Error(`HTTP ${res.status}`);
     }
   } catch (err) {
-    // API unreachable — keep showing last known real data (no fake updates)
-    dataSource = 'local';
-    lastFetchOk = false;
-    console.log(`[Refresh #${fetchCount}] API unavailable (${err.message}), keeping last known data`);
+    console.log(`[Refresh #${fetchCount}] Live API failed: ${err.message}`);
   }
+
+  // Layer 2: Try static data.json (updated manually or by CI)
+  try {
+    const res = await fetch('/data.json', { signal: AbortSignal.timeout(5000) });
+    if (res.ok) {
+      const jsonData = await res.json();
+      const applied = applyLiveData(jsonData);
+      if (applied) {
+        dataSource = 'local';
+        lastFetchOk = true;
+        cacheDataToStorage();
+        console.log(`[Refresh #${fetchCount}] 🟡 Static data.json applied (${jsonData.timestamp})`);
+        renderAll();
+        return;
+      }
+    }
+  } catch (err) {
+    console.log(`[Refresh #${fetchCount}] data.json fallback failed: ${err.message}`);
+  }
+
+  // Layer 3: Keep last known data (from localStorage cache or hardcoded)
+  dataSource = 'local';
+  lastFetchOk = false;
+  console.log(`[Refresh #${fetchCount}] ⚪ All sources unavailable, keeping last known data`);
   renderAll();
 }
 
