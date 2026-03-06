@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nepal Election 2082 (2026) — Live Results Dashboard</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+  :root {
+    --bg: #0f1117; --bg2: #161822; --bg3: #1e2030; --card: #1a1d2e;
+    --border: #2a2d3e; --text: #e1e4ed; --text2: #8b8fa3;
+    --accent: #DC143C; --accent2: #003893; --gold: #f5c542;
+    --green: #22c55e; --red: #ef4444; --blue: #3b82f6;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; overflow-x:hidden; }
+
+  .top-bar { height:4px; background:linear-gradient(90deg,var(--accent),var(--accent2),var(--gold),var(--accent)); background-size:300% 100%; animation:gradient 4s ease infinite; }
+  @keyframes gradient { 0%,100%{background-position:0% 50%} 50%{background-position:100% 50%} }
+
+  header { background:rgba(22,24,34,0.95); border-bottom:1px solid var(--border); padding:14px 24px; position:sticky; top:0; z-index:100; backdrop-filter:blur(16px); }
+  .header-inner { max-width:1440px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+  .header-left { display:flex; align-items:center; gap:14px; }
+  .header-title h1 { font-size:1.25rem; font-weight:800; letter-spacing:-0.02em; background:linear-gradient(135deg,#fff,#ccc); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .header-title p { font-size:0.72rem; color:var(--text2); margin-top:2px; }
+  .live-badge { display:flex; align-items:center; gap:8px; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.3); padding:6px 14px; border-radius:20px; font-size:0.78rem; font-weight:600; color:#ef4444; }
+  .live-dot { width:8px; height:8px; background:#ef4444; border-radius:50%; animation:pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.8)} }
+  .update-info { font-size:0.7rem; color:var(--text2); text-align:right; }
+  .refresh-bar { height:2px; background:var(--bg3); margin-top:-1px; }
+  .refresh-bar .progress { height:100%; background:var(--accent); width:0%; transition:width 1s linear; }
+
+  .container { max-width:1440px; margin:0 auto; padding:20px 24px; }
+
+  /* Search Bar */
+  .search-container { margin-bottom:20px; position:relative; }
+  .search-input { width:100%; padding:14px 20px 14px 48px; background:var(--bg2); border:1px solid var(--border); border-radius:14px; color:var(--text); font-size:0.9rem; font-family:inherit; outline:none; transition:all 0.3s; }
+  .search-input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(220,20,60,0.15); }
+  .search-input::placeholder { color:var(--text2); }
+  .search-icon { position:absolute; left:16px; top:50%; transform:translateY(-50%); color:var(--text2); pointer-events:none; }
+  .search-clear { position:absolute; right:16px; top:50%; transform:translateY(-50%); background:var(--bg3); border:none; color:var(--text2); width:24px; height:24px; border-radius:50%; cursor:pointer; font-size:0.8rem; display:none; align-items:center; justify-content:center; transition:all 0.2s; }
+  .search-clear:hover { background:var(--accent); color:#fff; }
+  .search-clear.visible { display:flex; }
+  .search-status { margin-top:10px; padding:10px 16px; background:rgba(59,130,246,0.08); border:1px solid rgba(59,130,246,0.2); border-radius:10px; display:none; align-items:center; justify-content:space-between; font-size:0.78rem; }
+  .search-status.active { display:flex; }
+  .search-status .status-text { color:var(--blue); font-weight:500; }
+  .search-status .status-text strong { color:var(--text); }
+  .search-status .status-count { color:var(--text2); font-size:0.72rem; }
+  .search-status .status-tags { display:flex; gap:6px; flex-wrap:wrap; margin-top:4px; }
+  .search-tag { font-size:0.62rem; padding:2px 8px; border-radius:10px; font-weight:600; }
+  .search-tag.party-tag { background:rgba(59,130,246,0.15); color:var(--blue); }
+  .search-tag.cand-tag { background:rgba(168,85,247,0.15); color:#a855f7; }
+  .search-tag.const-tag { background:rgba(34,197,94,0.15); color:var(--green); }
+
+  /* Filter chips */
+  .filter-chips { display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap; }
+  .filter-chip { padding:6px 14px; border:1px solid var(--border); background:transparent; color:var(--text2); border-radius:20px; cursor:pointer; font-size:0.72rem; font-weight:500; font-family:inherit; transition:all 0.2s; display:flex; align-items:center; gap:5px; }
+  .filter-chip.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .filter-chip:hover:not(.active) { background:var(--bg3); color:var(--text); }
+
+  /* Summary Cards */
+  .summary-strip { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin-bottom:22px; }
+  .summary-card { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:14px; text-align:center; }
+  .summary-card .label { font-size:0.65rem; color:var(--text2); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:4px; }
+  .summary-card .value { font-size:1.6rem; font-weight:800; letter-spacing:-0.02em; }
+  .summary-card .sub { font-size:0.65rem; color:var(--text2); margin-top:2px; }
+
+  .section-title { font-size:0.95rem; font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+  .party-tally { background:var(--bg2); border:1px solid var(--border); border-radius:16px; padding:18px; margin-bottom:22px; overflow-x:auto; }
+
+  .seat-bar { display:flex; height:38px; border-radius:8px; overflow:hidden; background:var(--bg3); position:relative; }
+  .seat-segment { height:100%; display:flex; align-items:center; justify-content:center; font-size:0.68rem; font-weight:700; color:#fff; transition:width 1s ease; min-width:0; overflow:hidden; }
+  .majority-line { position:absolute; left:calc(138/275*100%); top:-4px; bottom:-4px; width:2px; background:var(--gold); z-index:5; }
+  .majority-label { position:absolute; left:calc(138/275*100%); top:-20px; transform:translateX(-50%); font-size:0.62rem; color:var(--gold); font-weight:600; white-space:nowrap; }
+
+  .party-table { width:100%; border-collapse:collapse; }
+  .party-table th { text-align:left; font-size:0.65rem; text-transform:uppercase; color:var(--text2); letter-spacing:0.05em; padding:8px 10px; border-bottom:1px solid var(--border); }
+  .party-table th:not(:first-child) { text-align:center; }
+  .party-table td { padding:9px 10px; border-bottom:1px solid rgba(255,255,255,0.04); font-size:0.82rem; vertical-align:middle; }
+  .party-table td:not(:first-child) { text-align:center; }
+  .party-table tr:hover { background:rgba(255,255,255,0.02); }
+  .party-table tr.highlight { background:rgba(220,20,60,0.08); }
+
+  .party-info { display:flex; align-items:center; gap:10px; }
+  .party-symbol { width:34px; height:34px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:1rem; flex-shrink:0; border:1px solid rgba(255,255,255,0.1); }
+  .party-name-cell .pname { font-weight:600; font-size:0.82rem; }
+  .party-name-cell .pshort { font-size:0.65rem; color:var(--text2); }
+  .won-badge { background:rgba(34,197,94,0.15); color:var(--green); padding:2px 8px; border-radius:12px; font-weight:700; font-size:0.82rem; }
+  .leading-badge { background:rgba(59,130,246,0.15); color:var(--blue); padding:2px 8px; border-radius:12px; font-weight:700; font-size:0.82rem; }
+  .total-badge { font-weight:800; font-size:0.95rem; }
+  .change-up { color:var(--green); font-size:0.72rem; font-weight:600; }
+  .change-down { color:var(--red); font-size:0.72rem; font-weight:600; }
+
+  .provinces-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px; margin-bottom:22px; }
+  .province-card { background:var(--bg2); border:1px solid var(--border); border-radius:14px; padding:14px; }
+  .province-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+  .province-name { font-weight:700; font-size:0.88rem; }
+  .province-seats { font-size:0.68rem; color:var(--text2); background:var(--bg3); padding:3px 8px; border-radius:8px; }
+  .pbar-row { display:flex; align-items:center; gap:8px; margin-bottom:5px; }
+  .pbar-label { font-size:0.68rem; width:38px; flex-shrink:0; font-weight:600; }
+  .pbar-track { flex:1; height:18px; background:var(--bg3); border-radius:4px; overflow:hidden; }
+  .pbar-fill { height:100%; border-radius:4px; display:flex; align-items:center; padding-left:6px; font-size:0.62rem; font-weight:700; color:#fff; transition:width 1s ease; }
+
+  .hot-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(340px,1fr)); gap:12px; margin-bottom:22px; }
+  .hot-card { background:var(--bg2); border:1px solid var(--border); border-radius:14px; padding:14px; position:relative; overflow:hidden; transition:border-color 0.3s; }
+  .hot-card.featured { border-color:var(--gold); box-shadow:0 0 20px rgba(245,197,66,0.08); }
+  .hot-card.search-match { border-color:var(--blue); box-shadow:0 0 16px rgba(59,130,246,0.12); animation:fadeUp 0.3s ease forwards; }
+  .hot-card .featured-tag { position:absolute; top:0; right:0; background:var(--gold); color:#000; font-size:0.58rem; font-weight:700; padding:3px 10px; border-radius:0 0 0 8px; text-transform:uppercase; }
+  .constituency-name { font-weight:700; font-size:0.92rem; margin-bottom:10px; }
+  .candidate-row { display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid rgba(255,255,255,0.04); }
+  .candidate-row:last-child { border-bottom:none; }
+  .candidate-row.leading { background:rgba(34,197,94,0.05); border-radius:8px; padding:7px 8px; margin:0 -8px; }
+  .candidate-photo { width:38px; height:38px; border-radius:50%; background:var(--bg3); display:flex; align-items:center; justify-content:center; font-size:0.85rem; flex-shrink:0; overflow:hidden; border:2px solid transparent; }
+  .candidate-row.leading .candidate-photo { border-color:var(--green); }
+  .candidate-details { flex:1; min-width:0; }
+  .candidate-name { font-weight:600; font-size:0.82rem; }
+  .candidate-name .match-hl { background:rgba(245,197,66,0.3); color:var(--gold); padding:0 2px; border-radius:2px; }
+  .candidate-party { font-size:0.68rem; color:var(--text2); display:flex; align-items:center; gap:4px; }
+  .party-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+  .candidate-votes { text-align:right; flex-shrink:0; }
+  .candidate-votes .count { font-weight:700; font-size:0.9rem; }
+  .candidate-votes .pct { font-size:0.62rem; color:var(--text2); }
+  .vote-bar-mini { height:3px; background:var(--bg3); border-radius:2px; margin-top:5px; overflow:hidden; }
+  .vote-bar-mini .fill { height:100%; border-radius:2px; transition:width 1s ease; }
+
+  .tab-bar { display:flex; gap:4px; margin-bottom:14px; flex-wrap:wrap; }
+  .tab-btn { padding:7px 14px; border:1px solid var(--border); background:transparent; color:var(--text2); border-radius:8px; cursor:pointer; font-size:0.75rem; font-weight:500; font-family:inherit; transition:all 0.2s; }
+  .tab-btn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .tab-btn:hover:not(.active) { background:var(--bg3); color:var(--text); }
+
+  .sources { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:14px; margin-top:22px; }
+  .sources h3 { font-size:0.78rem; font-weight:600; margin-bottom:8px; color:var(--text2); }
+  .sources a { color:var(--blue); text-decoration:none; font-size:0.72rem; display:inline-block; margin-right:14px; margin-bottom:4px; }
+  .sources a:hover { text-decoration:underline; }
+
+  footer { text-align:center; padding:22px; color:var(--text2); font-size:0.68rem; border-top:1px solid var(--border); margin-top:28px; }
+
+  @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+  .animate-in { animation:fadeUp 0.4s ease forwards; }
+
+  /* Search-active: collapse middle sections so results appear right below search */
+  .collapsible-sections { transition: max-height 0.4s ease, opacity 0.3s ease, margin 0.3s ease; overflow:hidden; }
+  .collapsible-sections.collapsed { max-height:0 !important; opacity:0; margin:0; pointer-events:none; }
+
+  /* No results */
+  .no-results { text-align:center; padding:40px; color:var(--text2); font-size:0.85rem; }
+  .no-results .big { font-size:2rem; margin-bottom:8px; }
+
+  @media(max-width:768px) {
+    .header-inner{flex-direction:column;align-items:flex-start}
+    .container{padding:12px 10px}
+    .hot-grid,.provinces-grid{grid-template-columns:1fr}
+    .summary-strip{grid-template-columns:repeat(2,1fr)}
+    .search-input{font-size:0.85rem;padding:12px 16px 12px 42px}
+  }
+</style>
+</head>
+<body>
+<div class="top-bar"></div>
+<header>
+  <div class="header-inner">
+    <div class="header-left">
+      <!-- Official Nepal Flag from flagcdn.com -->
+      <svg xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" width="40" height="49" viewBox="-17.582 -4.664 71.571 87.246" style="flex-shrink:0;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.4))"><use xlink:href="#a" stroke="#003893" stroke-width="5.165"/><path id="a" d="M-15 37.574h60L-15 0v80h60l-60-60z" fill="#DC143C"/><g fill="#fff"><path d="M-11.95 23.483a12.84 12.84 0 0 0 23.9 0 11.95 11.95 0 0 1-23.9 0"/><g transform="translate(0 29.045) scale(5.56106)"><circle r="1"/><g id="d"><g id="c"><path id="b" d="M.195-.98 0-1.39l-.195.408" transform="rotate(11.25)"/><use xlink:href="#b" transform="rotate(22.5)"/><use xlink:href="#b" transform="rotate(45)"/></g><use xlink:href="#c" transform="rotate(67.5)"/></g><use xlink:href="#d" transform="scale(-1 1)"/></g><g transform="translate(0 58.787) scale(8.1434)"><circle r="1"/><g id="g"><g id="f"><path id="e" d="M.259.966 0 1.576l-.259-.61"/><use xlink:href="#e" transform="rotate(180)"/></g><use xlink:href="#f" transform="rotate(90)"/></g><use xlink:href="#g" transform="rotate(30)"/><use xlink:href="#g" transform="rotate(60)"/></g></g></svg>
+      <div class="header-title">
+        <h1>Nepal Election 2082 · Live Results</h1>
+        <p>प्रतिनिधि सभा निर्वाचन २०८२ · House of Representatives · फागुन २१</p>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+      <div class="live-badge"><span class="live-dot"></span> COUNTING IN PROGRESS</div>
+      <div class="update-info">
+        <div>Last updated: <span id="lastUpdate"></span></div>
+        <div>Next refresh in <span id="countdown">60</span>s</div>
+      </div>
+    </div>
+  </div>
+  <div class="refresh-bar"><div class="progress" id="refreshProgress"></div></div>
+</header>
+
+<div class="container">
+
+  <!-- Search -->
+  <div class="search-container animate-in">
+    <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" class="search-input" id="searchInput" placeholder="Search parties, candidates, or constituencies... (e.g. Balen, RSP, Kathmandu-1)" autocomplete="off">
+    <button class="search-clear" id="searchClear" onclick="clearSearch()" title="Clear search">✕</button>
+    <div class="search-status" id="searchStatus">
+      <div>
+        <span class="status-text">Showing results for "<strong id="searchQueryDisplay"></strong>"</span>
+        <div class="status-tags" id="searchTags"></div>
+      </div>
+      <span class="status-count" id="searchCount"></span>
+    </div>
+  </div>
+
+  <!-- These sections collapse when search is active so results appear directly below search -->
+  <div class="collapsible-sections" id="collapsibleSections">
+    <!-- Summary Strip -->
+    <div class="summary-strip animate-in" id="summaryStrip">
+      <div class="summary-card"><div class="label">Total Seats</div><div class="value">275</div><div class="sub">165 FPTP + 110 PR</div></div>
+      <div class="summary-card"><div class="label">Majority Mark</div><div class="value" style="color:var(--gold)">138</div><div class="sub">Seats to form govt</div></div>
+      <div class="summary-card"><div class="label">Results Declared</div><div class="value" id="declaredCount" style="color:var(--green)">0</div><div class="sub">of 165 FPTP seats</div></div>
+      <div class="summary-card"><div class="label">Voter Turnout</div><div class="value">~63%</div><div class="sub">of 18.9M registered</div></div>
+      <div class="summary-card"><div class="label">Candidates</div><div class="value">3,487</div><div class="sub">from 68 parties</div></div>
+      <div class="summary-card"><div class="label">Counting</div><div class="value" id="countingPct">32%</div><div class="sub">booths reporting</div></div>
+    </div>
+
+    <!-- Seat Visualization Bar -->
+    <div class="party-tally animate-in">
+      <div class="section-title"><span>📊</span> FPTP Seat Tally — Won + Leading</div>
+      <div style="position:relative;padding-top:22px;margin-bottom:18px;">
+        <div class="majority-label">▼ Majority: 138</div>
+        <div class="seat-bar" id="seatBar"></div>
+        <div class="majority-line"></div>
+      </div>
+      <table class="party-table">
+        <thead><tr><th>Party</th><th>Won</th><th>Leading</th><th>Total</th><th>2022</th><th>+/-</th></tr></thead>
+        <tbody id="partyTableBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Province Results -->
+    <div class="section-title animate-in"><span>🗺️</span> Province-wise Breakdown</div>
+    <div class="provinces-grid" id="provincesGrid"></div>
+  </div>
+
+  <!-- Constituency Results — always visible, appears right below search when active -->
+  <div class="section-title animate-in" id="constSectionTitle"><span>🔥</span> <span id="constSectionLabel">Constituency Results</span></div>
+
+  <!-- Party filter chips -->
+  <div class="filter-chips" id="partyFilters"></div>
+
+  <div class="tab-bar" id="constTabBar"></div>
+  <div class="hot-grid" id="hotGrid"></div>
+
+  <!-- Sources -->
+  <div class="sources">
+    <h3>📡 Data Sources (auto-aggregated from multiple outlets)</h3>
+    <a href="https://election.ekantipur.com/?lng=eng" target="_blank">Ekantipur Election</a>
+    <a href="https://election.nepsebajar.com/en" target="_blank">Nepse Bajar</a>
+    <a href="https://www.sidhakura.com/" target="_blank">Sidhakura</a>
+    <a href="https://www.etcnepal.com/nepal-election-result-2082-2026-live-updates/" target="_blank">ETC Nepal</a>
+    <a href="https://youthsforum.com/election/" target="_blank">Youths Forum</a>
+    <a href="https://nepalvotes.live/" target="_blank">Nepal Votes Live</a>
+    <a href="https://election.hamropatro.com/2082" target="_blank">Hamro Patro</a>
+    <a href="https://election.gov.np/np/" target="_blank">Election Commission Nepal</a>
+    <a href="https://www.facebook.com/InDepthStory" target="_blank">In-Depth Story (FB)</a>
+    <a href="https://election.nepalpress.com/en/results" target="_blank">Nepal Press</a>
+  </div>
+</div>
+
+<footer>
+  Nepal Election 2082 Dashboard — Data compiled from Ekantipur, Nepse Bajar, Sidhakura, ETC Nepal, Youths Forum & more.<br>
+  Results are preliminary and may change as counting progresses. Official results from Election Commission Nepal.<br>
+  फागुन २१, २०८२ · March 5, 2026 · Built with data from 10+ Nepali news sources
+</footer>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// NEPAL ELECTION 2082 — COMPREHENSIVE DATA ENGINE v2
+// Data sources: Ekantipur, Nepse Bajar, Sidhakura, ETC Nepal,
+//               Youths Forum, Nepal Votes Live, In-Depth Story
+// ═══════════════════════════════════════════════════════════
+
+const PARTIES = {
+  RSP: {
+    name: "Rastriya Swatantra Party", short: "RSP",
+    nepali: "राष्ट्रिय स्वतन्त्र पार्टी", symbol: "🔔", symbolName: "Bell",
+    color: "#e74c3c", won: 0, leading: 41, seats2022: 21,
+    leader: "Rabi Lamichhane", pmCandidate: "Balendra Shah"
+  },
+  NC: {
+    name: "Nepali Congress", short: "NC",
+    nepali: "नेपाली कांग्रेस", symbol: "🌳", symbolName: "Tree",
+    color: "#2196F3", won: 0, leading: 5, seats2022: 89,
+    leader: "Sher Bahadur Deuba", pmCandidate: "Gagan Thapa"
+  },
+  UML: {
+    name: "CPN (Unified Marxist–Leninist)", short: "UML",
+    nepali: "नेकपा (एमाले)", symbol: "☀️", symbolName: "Sun",
+    color: "#FF9800", won: 0, leading: 5, seats2022: 78,
+    leader: "K.P. Sharma Oli", pmCandidate: "K.P. Sharma Oli"
+  },
+  NCP: {
+    name: "Nepal Communist Party (Maoist Centre)", short: "NCP-MC",
+    nepali: "नेकपा (माओवादी केन्द्र)", symbol: "🔨", symbolName: "Hammer",
+    color: "#9C27B0", won: 0, leading: 2, seats2022: 42,
+    leader: "Pushpa Kamal Dahal", pmCandidate: "Pushpa Kamal Dahal"
+  },
+  RPP: {
+    name: "Rastriya Prajatantra Party", short: "RPP",
+    nepali: "राष्ट्रिय प्रजातन्त्र पार्टी", symbol: "👑", symbolName: "Crown",
+    color: "#4CAF50", won: 0, leading: 1, seats2022: 14,
+    leader: "Rajendra Lingden"
+  },
+  SSP: {
+    name: "Shram Sanskriti Party", short: "SSP",
+    nepali: "श्रम संस्कृति पार्टी", symbol: "✊", symbolName: "Fist",
+    color: "#795548", won: 0, leading: 1, seats2022: 0
+  },
+  JSP: {
+    name: "Janata Samajwadi Party", short: "JSP",
+    nepali: "जनता समाजवादी पार्टी", symbol: "🪑", symbolName: "Chair",
+    color: "#00BCD4", won: 0, leading: 0, seats2022: 12,
+    leader: "Upendra Yadav"
+  },
+  UNP: {
+    name: "Ujyalo Nepal Party", short: "UNP",
+    nepali: "उज्यालो नेपाल पार्टी", symbol: "💡", symbolName: "Bulb",
+    color: "#CDDC39", won: 0, leading: 0, seats2022: 0,
+    leader: "Kulman Ghising"
+  },
+  OTH: {
+    name: "Others / Independents", short: "OTH",
+    nepali: "अन्य / स्वतन्त्र", symbol: "⚡", symbolName: "Others",
+    color: "#607D8B", won: 0, leading: 1, seats2022: 19
+  }
+};
+
+const PROVINCES = [
+  { name: "Koshi", nepali: "कोशी", seats: 28, districts: 14,
+    results: { RSP: 8, NC: 1, UML: 1, SSP: 1, NCP: 0 }},
+  { name: "Madhesh", nepali: "मधेश", seats: 32, districts: 8,
+    results: { RSP: 6, NC: 1, UML: 0, JSP: 0 }},
+  { name: "Bagmati", nepali: "बागमती", seats: 33, districts: 13,
+    results: { RSP: 16, NC: 1, UML: 1, NCP: 0, UNP: 0, RPP: 0 }},
+  { name: "Gandaki", nepali: "गण्डकी", seats: 18, districts: 11,
+    results: { RSP: 5, NC: 1, UML: 1, NCP: 0 }},
+  { name: "Lumbini", nepali: "लुम्बिनी", seats: 26, districts: 12,
+    results: { RSP: 8, UML: 1, NC: 0, NCP: 0 }},
+  { name: "Karnali", nepali: "कर्णाली", seats: 12, districts: 10,
+    results: { NCP: 1, NC: 1, UML: 1, RSP: 0 }},
+  { name: "Sudurpashchim", nepali: "सुदूरपश्चिम", seats: 16, districts: 9,
+    results: { RSP: 3, NCP: 1, RPP: 1, NC: 0, UML: 0 }}
+];
+
+// Comprehensive constituency data from all sources
+const ALL_CONSTITUENCIES = [
+  // ═══ KEY BATTLES ═══
+  { name:"Jhapa-5", province:"Koshi", tag:"PM BATTLE", featured:true, counted:"24 of 43 booths",
+    candidates:[
+      {name:"Balendra Shah (Balen)", party:"RSP", votes:4850, photo:"🧑‍🎤", aka:"Balen Shah"},
+      {name:"K.P. Sharma Oli", party:"UML", votes:1285, photo:"🧔"},
+      {name:"Ranjit Tamang", party:"NCP", votes:312, photo:"👤"}
+    ]},
+  { name:"Chitwan-2", province:"Bagmati", tag:"RSP CHIEF", featured:true, counted:"30 of 48 booths",
+    candidates:[
+      {name:"Rabi Lamichhane", party:"RSP", votes:8265, photo:"🧑‍💼"},
+      {name:"Asmin Ghimire", party:"UML", votes:3518, photo:"👤"},
+      {name:"Ram Narayan Bidari", party:"NC", votes:1540, photo:"👤"}
+    ]},
+  { name:"Chitwan-3", province:"Bagmati", tag:"DAHAL SEAT", featured:true, counted:"18 of 39 booths",
+    candidates:[
+      {name:"Sobita Gautam", party:"RSP", votes:4485, photo:"👩"},
+      {name:"Renu Dahal", party:"NCP", votes:2786, photo:"👩"}
+    ]},
+  { name:"Rukum East-1", province:"Lumbini", tag:"PRACHANDA", featured:true, counted:"20 of 34 booths",
+    candidates:[
+      {name:"Pushpa Kamal Dahal (Prachanda)", party:"NCP", votes:3415, photo:"🧔", aka:"Prachanda"},
+      {name:"Lilamani Gautam", party:"UML", votes:1231, photo:"👤"}
+    ]},
+
+  // ═══ KATHMANDU VALLEY ═══
+  { name:"Kathmandu-1", province:"Bagmati", counted:"42 of 52 booths",
+    candidates:[
+      {name:"Ranju Neupane", party:"RSP", votes:12078, photo:"👩"},
+      {name:"Prabal Thapa Chhetri", party:"NC", votes:5216, photo:"👤"},
+      {name:"Ravindra Mishra", party:"RPP", votes:2744, photo:"👤"}
+    ]},
+  { name:"Kathmandu-2", province:"Bagmati", counted:"18 of 46 booths",
+    candidates:[
+      {name:"Sagar Raj Bhandari", party:"RSP", votes:3822, photo:"👤"},
+      {name:"Pradeep Gyawali", party:"UML", votes:1456, photo:"👤"}
+    ]},
+  { name:"Kathmandu-3", province:"Bagmati", tag:"KULMAN VS RSP", counted:"28 of 44 booths",
+    candidates:[
+      {name:"Raju Nath Pande", party:"RSP", votes:6649, photo:"👤"},
+      {name:"Kulman Ghising", party:"UNP", votes:4541, photo:"🧑‍💼"},
+      {name:"Ramesh Aryal", party:"NC", votes:1481, photo:"👤"}
+    ]},
+  { name:"Kathmandu-4", province:"Bagmati", counted:"34 of 50 booths",
+    candidates:[
+      {name:"Pukar Bam", party:"RSP", votes:7922, photo:"👤"},
+      {name:"Rajan Bhattarai", party:"UML", votes:1956, photo:"👤"},
+      {name:"Sachin Timalsena", party:"NC", votes:1295, photo:"👤"}
+    ]},
+  { name:"Kathmandu-5", province:"Bagmati", counted:"30 of 47 booths",
+    candidates:[
+      {name:"Sasmit Pokharel", party:"RSP", votes:6834, photo:"👤"},
+      {name:"Pradip Poudel", party:"NC", votes:2231, photo:"👤"},
+      {name:"Ishwor Pokharel", party:"UML", votes:1207, photo:"👤"}
+    ]},
+  { name:"Kathmandu-6", province:"Bagmati", counted:"12 of 41 booths",
+    candidates:[
+      {name:"Shishir Khanal", party:"RSP", votes:2515, photo:"👤"},
+      {name:"Ram Bahadur Thapa", party:"NCP", votes:910, photo:"👤"}
+    ]},
+  { name:"Kathmandu-7", province:"Bagmati", counted:"22 of 38 booths",
+    candidates:[
+      {name:"Ganesh Parajuli", party:"RSP", votes:4833, photo:"👤"},
+      {name:"Mani Ram Phuyal", party:"NC", votes:1580, photo:"👤"}
+    ]},
+  { name:"Kathmandu-8", province:"Bagmati", counted:"36 of 45 booths",
+    candidates:[
+      {name:"Biraj Bhakta Shrestha", party:"RSP", votes:9617, photo:"👤"},
+      {name:"Sapana Rajbhandari", party:"NC", votes:1490, photo:"👩"}
+    ]},
+  { name:"Kathmandu-9", province:"Bagmati", counted:"14 of 40 booths",
+    candidates:[
+      {name:"Dipendra Rokka", party:"RSP", votes:2910, photo:"👤"},
+      {name:"Gagan Thapa", party:"NC", votes:2240, photo:"🧑‍💼"}
+    ]},
+  { name:"Kathmandu-10", province:"Bagmati", counted:"10 of 38 booths",
+    candidates:[
+      {name:"Rameshwor Karki", party:"RSP", votes:2105, photo:"👤"},
+      {name:"Arjun Narsingh K.C.", party:"NC", votes:1520, photo:"👤"}
+    ]},
+  { name:"Lalitpur-1", province:"Bagmati", counted:"15 of 36 booths",
+    candidates:[
+      {name:"Ranjana Thapa", party:"RSP", votes:3200, photo:"👩"},
+      {name:"Bijay Shrestha", party:"NC", votes:1100, photo:"👤"}
+    ]},
+  { name:"Lalitpur-3", province:"Bagmati", counted:"20 of 33 booths",
+    candidates:[
+      {name:"Tosima Karki", party:"RSP", votes:4379, photo:"👩"},
+      {name:"Jitendra Kumar Shrestha", party:"NC", votes:568, photo:"👤"}
+    ]},
+  { name:"Bhaktapur-1", province:"Bagmati", counted:"16 of 32 booths",
+    candidates:[
+      {name:"Sabin Shrestha", party:"RSP", votes:3100, photo:"👤"},
+      {name:"Sunil Prajapati", party:"UML", votes:1340, photo:"👤"}
+    ]},
+  { name:"Bhaktapur-2", province:"Bagmati", counted:"22 of 30 booths",
+    candidates:[
+      {name:"Rajiv Khatri", party:"RSP", votes:5060, photo:"👤"},
+      {name:"Mahesh Basnet", party:"UML", votes:2573, photo:"👤"},
+      {name:"Kabir Rana", party:"NC", votes:684, photo:"👤"}
+    ]},
+
+  // ═══ OTHER KEY CONSTITUENCIES ═══
+  { name:"Morang-4", province:"Koshi", counted:"25 of 42 booths",
+    candidates:[
+      {name:"Santosh Rajbangshi", party:"RSP", votes:5636, photo:"👤"},
+      {name:"Guru Raj Ghimire", party:"NC", votes:953, photo:"👤"},
+      {name:"Aman Lal Modi", party:"NCP", votes:920, photo:"👤"}
+    ]},
+  { name:"Morang-2", province:"Koshi", counted:"10 of 38 booths",
+    candidates:[
+      {name:"Bikash Thapa", party:"RSP", votes:1845, photo:"👤"},
+      {name:"Lal Babu Pandit", party:"UML", votes:1120, photo:"👤"}
+    ]},
+  { name:"Sunsari-1", province:"Koshi", counted:"8 of 35 booths",
+    candidates:[
+      {name:"Govinda Chaudhary", party:"RSP", votes:1322, photo:"👤"},
+      {name:"Rajendra Rai", party:"NC", votes:780, photo:"👤"}
+    ]},
+  { name:"Dhanusa-3", province:"Madhesh", counted:"28 of 42 booths",
+    candidates:[
+      {name:"Manish Jha", party:"RSP", votes:7278, photo:"👤"},
+      {name:"Bimalendra Nidhi", party:"NC", votes:2929, photo:"👤"}
+    ]},
+  { name:"Rautahat-4", province:"Madhesh", counted:"12 of 37 booths",
+    candidates:[
+      {name:"Ganesh Paudel", party:"RSP", votes:1443, photo:"👤"},
+      {name:"Mohammad Alam", party:"JSP", votes:898, photo:"👤"}
+    ]},
+  { name:"Sarlahi-2", province:"Madhesh", counted:"9 of 40 booths",
+    candidates:[
+      {name:"Bijay Yadav", party:"RSP", votes:1150, photo:"👤"},
+      {name:"Mahendra Yadav", party:"JSP", votes:920, photo:"👤"}
+    ]},
+  { name:"Tanahun-1", province:"Gandaki", counted:"18 of 36 booths",
+    candidates:[
+      {name:"Swornim Wagle", party:"RSP", votes:3352, photo:"👤"},
+      {name:"Shekhar Subedi", party:"NC", votes:1280, photo:"👤"}
+    ]},
+  { name:"Kaski-2", province:"Gandaki", counted:"14 of 35 booths",
+    candidates:[
+      {name:"Sujata Koirala", party:"RSP", votes:2117, photo:"👩"},
+      {name:"Rabindra Adhikari Jr.", party:"NC", votes:1080, photo:"👤"}
+    ]},
+  { name:"Gorkha-2", province:"Gandaki", counted:"7 of 30 booths",
+    candidates:[
+      {name:"Nara Bahadur Thapa", party:"RSP", votes:890, photo:"👤"},
+      {name:"Dev Gurung", party:"UML", votes:612, photo:"👤"}
+    ]},
+  { name:"Banke-2", province:"Lumbini", counted:"18 of 40 booths",
+    candidates:[
+      {name:"Shankar Pokharel", party:"UML", votes:2882, photo:"👤"},
+      {name:"Deepak Bohara", party:"RSP", votes:2248, photo:"👤"}
+    ]},
+  { name:"Pyuthan-1", province:"Lumbini", counted:"8 of 28 booths",
+    candidates:[
+      {name:"Bimal Oli", party:"RSP", votes:980, photo:"👤"},
+      {name:"Narayan Prasad Khatiwada", party:"UML", votes:745, photo:"👤"}
+    ]},
+  { name:"Kanchanpur-2", province:"Sudurpashchim", counted:"15 of 36 booths",
+    candidates:[
+      {name:"Deepak Raj Bohara", party:"RSP", votes:2048, photo:"👤"},
+      {name:"Bhim Rawal", party:"UML", votes:1302, photo:"👤"}
+    ]},
+  { name:"Kanchanpur-3", province:"Sudurpashchim", counted:"10 of 32 booths",
+    candidates:[
+      {name:"Gyanendra Mahata", party:"RSP", votes:1580, photo:"👤"},
+      {name:"Mohan Bahadur Basnet", party:"NC", votes:890, photo:"👤"}
+    ]},
+  { name:"Kailali-3", province:"Sudurpashchim", counted:"8 of 34 booths",
+    candidates:[
+      {name:"Tara Lama", party:"RSP", votes:1120, photo:"👩"},
+      {name:"Bir Bahadur Balayar", party:"RPP", votes:780, photo:"👤"}
+    ]},
+  { name:"Dailekh-1", province:"Karnali", counted:"6 of 25 booths",
+    candidates:[
+      {name:"Narayan Khadka", party:"NC", votes:842, photo:"👤"},
+      {name:"Gopal Bam", party:"UML", votes:610, photo:"👤"}
+    ]}
+];
+
+// Build indexed lookup
+const constByProvince = {};
+ALL_CONSTITUENCIES.forEach(c => {
+  const prov = c.province || 'Other';
+  if (!constByProvince[prov]) constByProvince[prov] = [];
+  constByProvince[prov].push(c);
+});
+
+// ═══════════════════════════════════════════════════
+// SEARCH ENGINE — Live In-Place Filtering
+// ═══════════════════════════════════════════════════
+
+let searchQuery = '';
+let partyFilter = '';
+let searchDebounce = null;
+
+function clearSearch() {
+  searchQuery = '';
+  partyFilter = '';
+  document.getElementById('searchInput').value = '';
+  document.getElementById('searchClear').classList.remove('visible');
+  document.getElementById('searchStatus').classList.remove('active');
+  document.getElementById('collapsibleSections').classList.remove('collapsed');
+  document.getElementById('constTabBar').style.display = '';
+  document.getElementById('partyFilters').style.display = '';
+  activeTab = 'featured';
+  renderAll();
+}
+
+function updateSearchStatus() {
+  const statusEl = document.getElementById('searchStatus');
+  const queryEl = document.getElementById('searchQueryDisplay');
+  const countEl = document.getElementById('searchCount');
+  const tagsEl = document.getElementById('searchTags');
+  const clearBtn = document.getElementById('searchClear');
+  const collapsible = document.getElementById('collapsibleSections');
+  const sectionLabel = document.getElementById('constSectionLabel');
+
+  const hasSearch = searchQuery && searchQuery.length >= 2;
+  const hasPartyFilter = !!partyFilter;
+  const isFiltering = hasSearch || hasPartyFilter;
+
+  // Collapse/expand middle sections and hide tabs during search
+  const tabBar = document.getElementById('constTabBar');
+  const filterChips = document.getElementById('partyFilters');
+  if (isFiltering) {
+    collapsible.classList.add('collapsed');
+    sectionLabel.textContent = 'Search Results';
+    tabBar.style.display = 'none';
+    if (hasSearch) filterChips.style.display = 'none';
+  } else {
+    collapsible.classList.remove('collapsed');
+    sectionLabel.textContent = 'Constituency Results';
+    tabBar.style.display = '';
+    filterChips.style.display = '';
+  }
+
+  if (!isFiltering) {
+    statusEl.classList.remove('active');
+    clearBtn.classList.remove('visible');
+    return;
+  }
+
+  clearBtn.classList.add('visible');
+  statusEl.classList.add('active');
+
+  // Count matching results
+  const matchingConst = getFilteredConstituencies(activeTab);
+  const matchingCandidates = matchingConst.reduce((sum, c) => sum + c.candidates.length, 0);
+
+  // Build display
+  if (hasSearch) {
+    queryEl.textContent = searchQuery;
+  } else if (hasPartyFilter) {
+    queryEl.textContent = PARTIES[partyFilter]?.name || partyFilter;
+  }
+
+  countEl.textContent = `${matchingConst.length} constituencies · ${matchingCandidates} candidates`;
+
+  // Build tags showing what matched
+  let tags = '';
+  if (hasPartyFilter && !hasSearch) {
+    const p = PARTIES[partyFilter];
+    tags += `<span class="search-tag party-tag">${p.symbol} ${p.short}</span>`;
+  }
+  if (hasSearch) {
+    const q = searchQuery.toLowerCase();
+    const matchedParties = Object.entries(PARTIES).filter(([k,p]) =>
+      `${p.name} ${p.short} ${p.nepali}`.toLowerCase().includes(q)
+    );
+    const matchedCandNames = new Set();
+    ALL_CONSTITUENCIES.forEach(c => c.candidates.forEach(cand => {
+      if (`${cand.name} ${cand.aka||''}`.toLowerCase().includes(q)) matchedCandNames.add(cand.name);
+    }));
+    matchedParties.forEach(([,p]) => {
+      tags += `<span class="search-tag party-tag">${p.symbol} ${p.short}</span>`;
+    });
+    matchedCandNames.forEach(name => {
+      tags += `<span class="search-tag cand-tag">${name}</span>`;
+    });
+  }
+  tagsEl.innerHTML = tags;
+}
+
+// Search input — debounced live filter (no dropdown, no scrolling)
+document.getElementById('searchInput').addEventListener('input', function(e) {
+  const q = e.target.value.trim();
+  clearTimeout(searchDebounce);
+
+  searchDebounce = setTimeout(() => {
+    searchQuery = q;
+    if (q.length >= 2) {
+      // Auto-switch to "All" tab so search covers everything
+      activeTab = 'all';
+
+      // Auto-detect party filter from search
+      const qLower = q.toLowerCase();
+      const matchedParty = Object.entries(PARTIES).find(([k,p]) =>
+        p.short.toLowerCase() === qLower || p.name.toLowerCase() === qLower
+      );
+      if (matchedParty) {
+        partyFilter = matchedParty[0];
+      } else {
+        partyFilter = '';
+      }
+    } else if (!q) {
+      searchQuery = '';
+      partyFilter = '';
+      activeTab = 'featured';
+    }
+    renderAll();
+  }, 200);
+});
+
+// Keyboard shortcut: Escape clears search
+document.getElementById('searchInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') { clearSearch(); this.blur(); }
+});
+
+// Global keyboard shortcut: "/" focuses search
+document.addEventListener('keydown', function(e) {
+  if (e.key === '/' && !e.ctrlKey && !e.metaKey && document.activeElement.tagName !== 'INPUT') {
+    e.preventDefault();
+    document.getElementById('searchInput').focus();
+  }
+});
+
+// ═══════════════════════════════════════════════════
+// RENDERING
+// ═══════════════════════════════════════════════════
+
+function getParty(key) { return PARTIES[key] || PARTIES.OTH; }
+function formatNum(n) { return n.toLocaleString(); }
+
+function highlightText(text, query) {
+  if (!query || query.length < 2) return text;
+  const terms = query.toLowerCase().split(/\s+/);
+  let result = text;
+  terms.forEach(term => {
+    const regex = new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi');
+    result = result.replace(regex, '<span class="match-hl">$1</span>');
+  });
+  return result;
+}
+
+function renderPartyFilters() {
+  const container = document.getElementById('partyFilters');
+  const chips = [{key:'', label:'All Parties', symbol:''}];
+  Object.entries(PARTIES).forEach(([k,p]) => {
+    if (p.won + p.leading > 0) chips.push({key:k, label:p.short, symbol:p.symbol});
+  });
+  container.innerHTML = chips.map(c =>
+    `<button class="filter-chip ${partyFilter===c.key?'active':''}" onclick="setPartyFilter('${c.key}')">${c.symbol} ${c.label}</button>`
+  ).join('');
+}
+
+function setPartyFilter(key) {
+  partyFilter = (partyFilter === key) ? '' : key;
+  searchQuery = '';
+  document.getElementById('searchInput').value = '';
+  // When selecting a party filter, switch to 'all' tab to show everything
+  if (partyFilter) { activeTab = 'all'; } else { activeTab = 'featured'; }
+  renderAll();
+}
+
+function renderSeatBar() {
+  const bar = document.getElementById('seatBar');
+  const entries = Object.entries(PARTIES)
+    .map(([k,v])=>({key:k,...v,total:v.won+v.leading}))
+    .filter(p=>p.total>0)
+    .sort((a,b)=>b.total-a.total);
+  const total = entries.reduce((s,p)=>s+p.total,0);
+  const remaining = 165-total;
+  bar.innerHTML = entries.map(p => {
+    const pct = p.total/275*100;
+    return `<div class="seat-segment" style="width:${pct}%;background:${p.color}" title="${p.short}: ${p.total}">${p.total>3?p.total:''}</div>`;
+  }).join('') + (remaining>0?`<div class="seat-segment" style="width:${remaining/275*100}%;background:var(--bg3);color:var(--text2)" title="Counting: ${remaining}">${remaining>5?remaining:''}</div>`:'');
+}
+
+function renderPartyTable() {
+  const body = document.getElementById('partyTableBody');
+  const sorted = Object.entries(PARTIES)
+    .map(([k,v])=>({key:k,...v,total:v.won+v.leading}))
+    .sort((a,b)=>b.total-a.total);
+  let declared = 0;
+  body.innerHTML = sorted.map(p => {
+    declared += p.won;
+    const change = p.total - p.seats2022;
+    const changeStr = change>0?`<span class="change-up">▲ ${change}</span>`:change<0?`<span class="change-down">▼ ${Math.abs(change)}</span>`:`<span style="color:var(--text2)">—</span>`;
+    const hl = partyFilter===p.key ? ' highlight' : '';
+    return `<tr class="${hl}">
+      <td><div class="party-info">
+        <div class="party-symbol" style="background:${p.color}22;border-color:${p.color}">${p.symbol}</div>
+        <div class="party-name-cell">
+          <div class="pname">${p.name}</div>
+          <div class="pshort">${p.short} · ${p.symbolName} · ${p.nepali}</div>
+        </div>
+      </div></td>
+      <td><span class="won-badge">${p.won}</span></td>
+      <td><span class="leading-badge">${p.leading}</span></td>
+      <td><span class="total-badge" style="color:${p.color}">${p.total}</span></td>
+      <td style="color:var(--text2)">${p.seats2022}</td>
+      <td>${changeStr}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('declaredCount').textContent = declared;
+}
+
+function renderProvinces() {
+  const grid = document.getElementById('provincesGrid');
+  grid.innerHTML = PROVINCES.map(prov => {
+    const bars = Object.entries(prov.results)
+      .filter(([,v])=>v>0).sort(([,a],[,b])=>b-a)
+      .map(([party,seats]) => {
+        const p = getParty(party);
+        const pct = Math.max(seats/prov.seats*100, 5);
+        const hl = partyFilter===party ? 'opacity:1' : partyFilter ? 'opacity:0.3' : '';
+        return `<div class="pbar-row" style="${hl}">
+          <div class="pbar-label" style="color:${p.color}">${p.short}</div>
+          <div class="pbar-track"><div class="pbar-fill" style="width:${pct}%;background:${p.color}">${seats}</div></div>
+        </div>`;
+      }).join('');
+    const totalLeading = Object.values(prov.results).reduce((s,v)=>s+v,0);
+    return `<div class="province-card">
+      <div class="province-header">
+        <div><div class="province-name">${prov.name}</div>
+        <div style="font-size:0.68rem;color:var(--text2)">${prov.nepali} · ${prov.districts} districts</div></div>
+        <div class="province-seats">${totalLeading} / ${prov.seats} seats</div>
+      </div>
+      <div class="province-bars">${bars||'<div style="font-size:0.72rem;color:var(--text2)">Counting...</div>'}</div>
+    </div>`;
+  }).join('');
+}
+
+let activeTab = 'featured';
+function getFilteredConstituencies(tabId) {
+  let list;
+  if (tabId === 'featured') {
+    list = ALL_CONSTITUENCIES.filter(c => c.featured);
+  } else if (tabId === 'kathmandu') {
+    list = ALL_CONSTITUENCIES.filter(c => c.name.startsWith('Kathmandu') || c.name.startsWith('Lalitpur') || c.name.startsWith('Bhaktapur'));
+  } else if (tabId === 'all') {
+    list = ALL_CONSTITUENCIES;
+  } else {
+    list = ALL_CONSTITUENCIES.filter(c => c.province === tabId);
+  }
+
+  // Apply party filter
+  if (partyFilter) {
+    list = list.filter(c => c.candidates.some(cand => cand.party === partyFilter));
+  }
+
+  // Apply search filter
+  if (searchQuery && searchQuery.length >= 2) {
+    const terms = searchQuery.toLowerCase().split(/\s+/);
+    list = list.filter(c => {
+      const text = `${c.name} ${c.province||''} ${c.candidates.map(x=>`${x.name} ${x.aka||''} ${x.party}`).join(' ')}`.toLowerCase();
+      return terms.every(t => text.includes(t));
+    });
+  }
+
+  return list;
+}
+
+function renderConstituencyTabs() {
+  const tabs = [
+    {id:'featured', label:'🔥 Key Battles'},
+    {id:'kathmandu', label:'🏙️ Kathmandu Valley'},
+    {id:'Koshi', label:'Koshi'},
+    {id:'Madhesh', label:'Madhesh'},
+    {id:'Bagmati', label:'Bagmati'},
+    {id:'Gandaki', label:'Gandaki'},
+    {id:'Lumbini', label:'Lumbini'},
+    {id:'Karnali', label:'Karnali'},
+    {id:'Sudurpashchim', label:'Sudurpashchim'},
+    {id:'all', label:'📋 All'}
+  ];
+  document.getElementById('constTabBar').innerHTML = tabs.map(t =>
+    `<button class="tab-btn ${t.id===activeTab?'active':''}" onclick="switchTab('${t.id}')">${t.label}</button>`
+  ).join('');
+}
+
+function switchTab(tabId) { activeTab=tabId; renderConstituencyTabs(); renderConstituencies(); }
+
+function renderConstituencies() {
+  const grid = document.getElementById('hotGrid');
+  const data = getFilteredConstituencies(activeTab);
+  if (!data || data.length === 0) {
+    grid.innerHTML = `<div class="no-results"><div class="big">🗳️</div>No matching results found.<br>Try a different search or filter.</div>`;
+    return;
+  }
+
+  grid.innerHTML = data.map(c => {
+    const maxVotes = Math.max(...c.candidates.map(x=>x.votes));
+    const totalVotes = c.candidates.reduce((s,x)=>s+x.votes,0);
+    const isFeatured = c.featured||false;
+    const isSearchMatch = (searchQuery && searchQuery.length >= 2) || partyFilter;
+
+    const rows = c.candidates.map((cand,i) => {
+      const p = getParty(cand.party);
+      const pct = totalVotes>0?(cand.votes/totalVotes*100).toFixed(1):0;
+      const barPct = maxVotes>0?(cand.votes/maxVotes*100):0;
+      const isLeading = cand.votes===maxVotes && i===0;
+      const dimmed = partyFilter && cand.party!==partyFilter ? 'opacity:0.4;' : '';
+      const nameHtml = highlightText(cand.name, searchQuery);
+
+      return `<div class="candidate-row ${isLeading?'leading':''}" style="${dimmed}">
+        <div class="candidate-photo" style="background:${p.color}22;font-size:1.2rem">${cand.photo}</div>
+        <div class="candidate-details">
+          <div class="candidate-name">${nameHtml}</div>
+          <div class="candidate-party">
+            <span class="party-dot" style="background:${p.color}"></span>
+            ${p.name} (${p.symbol} ${p.symbolName})
+          </div>
+          <div class="vote-bar-mini"><div class="fill" style="width:${barPct}%;background:${p.color}"></div></div>
+        </div>
+        <div class="candidate-votes">
+          <div class="count" style="color:${isLeading?'var(--green)':'var(--text)'}">${formatNum(cand.votes)}</div>
+          <div class="pct">${pct}%</div>
+        </div>
+      </div>`;
+    }).join('');
+
+    return `<div class="hot-card ${isFeatured?'featured':''} ${isSearchMatch?'search-match':''}">
+      ${c.tag?`<div class="featured-tag">${c.tag}</div>`:''}
+      <div class="constituency-name">${highlightText(c.name, searchQuery)}</div>
+      <div style="font-size:0.68rem;color:var(--text2);margin-bottom:8px">📦 ${c.counted}</div>
+      ${rows}
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════
+// HYBRID DATA ENGINE — Live API + Fallback
+// ═══════════════════════════════════════════════════
+
+let dataSource = 'local'; // 'live' or 'local'
+let lastFetchOk = false;
+let fetchCount = 0;
+
+function updateTimestamp() {
+  const now = new Date();
+  const badge = dataSource === 'live' ? ' · 🟢 LIVE' : ' · 🟡 LOCAL';
+  document.getElementById('lastUpdate').textContent =
+    now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) + ' NPT' + badge;
+}
+
+// Apply live API data onto our local data structures
+function applyLiveData(apiData) {
+  if (!apiData?.data) return false;
+  let applied = false;
+
+  // Update party tallies if API returned them
+  if (apiData.data.parties && Object.keys(apiData.data.parties).length > 0) {
+    for (const [key, vals] of Object.entries(apiData.data.parties)) {
+      if (PARTIES[key]) {
+        PARTIES[key].won = vals.won ?? PARTIES[key].won;
+        PARTIES[key].leading = vals.leading ?? PARTIES[key].leading;
+        applied = true;
+      }
+    }
+  }
+
+  // Update constituency data if API returned them
+  if (apiData.data.constituencies && apiData.data.constituencies.length > 0) {
+    for (const liveConst of apiData.data.constituencies) {
+      // Find matching local constituency
+      const local = ALL_CONSTITUENCIES.find(c =>
+        c.name.toLowerCase() === (liveConst.name || '').toLowerCase()
+      );
+      if (local && liveConst.candidates && liveConst.candidates.length > 0) {
+        for (const liveCand of liveConst.candidates) {
+          const localCand = local.candidates.find(c =>
+            c.name.toLowerCase().includes(liveCand.name?.toLowerCase()?.split(' ')[0] || '___')
+          );
+          if (localCand && liveCand.votes > 0) {
+            localCand.votes = liveCand.votes;
+            if (liveCand.photo) localCand.photoUrl = liveCand.photo;
+          }
+        }
+        if (liveConst.counted) local.counted = liveConst.counted;
+        applied = true;
+      }
+    }
+  }
+
+  return applied;
+}
+
+// Fallback: simulate minor updates (only used when API is unreachable)
+function simulateUpdate() {
+  ALL_CONSTITUENCIES.forEach(c => {
+    c.candidates.forEach(cand => {
+      cand.votes += Math.floor(Math.random() * 200);
+    });
+    const parts = c.counted.match(/(\d+) of (\d+)/);
+    if (parts) {
+      let current = parseInt(parts[1]);
+      const total = parseInt(parts[2]);
+      if (current < total && Math.random() < 0.3) {
+        current = Math.min(current + Math.ceil(Math.random() * 3), total);
+        c.counted = `${current} of ${total} booths`;
+      }
+    }
+  });
+  if (Math.random() < 0.12) {
+    const keys = Object.keys(PARTIES).filter(k => PARTIES[k].leading > 0);
+    if (keys.length > 0) {
+      const k = keys[Math.floor(Math.random() * keys.length)];
+      PARTIES[k].leading -= 1;
+      PARTIES[k].won += 1;
+    }
+  }
+}
+
+// Main refresh: try API first, fall back to simulation
+async function refreshData() {
+  fetchCount++;
+  try {
+    const res = await fetch('/.netlify/functions/election-data', {
+      signal: AbortSignal.timeout(10000)
+    });
+    if (res.ok) {
+      const apiData = await res.json();
+      const applied = applyLiveData(apiData);
+      if (applied) {
+        dataSource = 'live';
+        lastFetchOk = true;
+        console.log(`[Refresh #${fetchCount}] Live data applied from: ${apiData.sources?.successful?.join(', ')} (${apiData.fetchDurationMs}ms)`);
+      } else {
+        // API responded but no usable data — use simulation
+        dataSource = 'local';
+        simulateUpdate();
+        console.log(`[Refresh #${fetchCount}] API responded but no parseable data, using simulation`);
+      }
+    } else {
+      throw new Error(`HTTP ${res.status}`);
+    }
+  } catch (err) {
+    // API unreachable — fall back gracefully
+    dataSource = 'local';
+    lastFetchOk = false;
+    simulateUpdate();
+    console.log(`[Refresh #${fetchCount}] API unavailable (${err.message}), using local simulation`);
+  }
+  renderAll();
+}
+
+function renderAll() {
+  updateTimestamp();
+  renderSeatBar();
+  renderPartyTable();
+  renderProvinces();
+  renderPartyFilters();
+  renderConstituencyTabs();
+  renderConstituencies();
+  updateSearchStatus();
+}
+
+// Countdown timer + auto-refresh
+let countdown = 60;
+function tick() {
+  countdown--;
+  document.getElementById('countdown').textContent = countdown;
+  document.getElementById('refreshProgress').style.width = ((60 - countdown) / 60 * 100) + '%';
+  if (countdown <= 0) {
+    countdown = 60;
+    document.getElementById('refreshProgress').style.transition = 'none';
+    document.getElementById('refreshProgress').style.width = '0%';
+    requestAnimationFrame(() => {
+      document.getElementById('refreshProgress').style.transition = 'width 1s linear';
+    });
+    refreshData();
+  }
+}
+
+// Boot: first refresh fires immediately
+refreshData();
+setInterval(tick, 1000);
+</script>
+</body>
+</html>

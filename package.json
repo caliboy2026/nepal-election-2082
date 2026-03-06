@@ -1,0 +1,10 @@
+{
+  "name": "nepal-election-2082",
+  "version": "1.0.0",
+  "description": "Live Nepal Election 2082 Results Dashboard",
+  "private": true,
+  "scripts": {
+    "dev": "netlify dev",
+    "deploy": "netlify deploy --prod"
+  }
+}
