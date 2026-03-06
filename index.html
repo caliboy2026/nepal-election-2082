@@ -1375,10 +1375,12 @@ function tick() {
   }
 }
 
-// Boot: load cached data first, then fetch live data immediately
-loadCachedData();
-refreshData();
-setInterval(tick, 1000);
+// Boot: fetch live data FIRST, then render. Fall back to cache/hardcoded if API fails.
+(async function boot() {
+  loadCachedData();
+  await refreshData();  // wait for first API call before showing anything
+  setInterval(tick, 1000);
+})();
 </script>
 </body>
 </html>
