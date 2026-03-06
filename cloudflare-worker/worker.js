@@ -17,12 +17,48 @@
 const NEPSEBAJAR_URL = 'https://election.nepsebajar.com/en';
 const BATCH_SIZE = 15;
 
-// ═══ PERSISTENT STATE (survives across warm invocations) ═══
+// ═══ IN-MEMORY STATE (may be wiped on isolate recycle) ═══
 let deepCache = {};          // constituency id → constituency data
 let deepCacheTimestamp = 0;
 let currentBatch = 0;
 let quickCache = null;
 let quickCacheTimestamp = 0;
+let kvLoaded = false;        // whether we've loaded from KV this isolate
+
+// ═══ KV PERSISTENCE — survives isolate restarts ═══
+const KV_KEY = 'deepCache_v1';
+async function loadFromKV(env) {
+  if (kvLoaded || !env.ELECTION_CACHE) return;
+  try {
+    const stored = await env.ELECTION_CACHE.get(KV_KEY, 'json');
+    if (stored && stored.data && Object.keys(stored.data).length > 0) {
+      // Only load if in-memory cache is empty or KV has more data
+      if (Object.keys(deepCache).length < Object.keys(stored.data).length) {
+        deepCache = stored.data;
+        deepCacheTimestamp = stored.timestamp || Date.now();
+        currentBatch = stored.currentBatch || 0;
+        console.log(`[KV] Loaded ${Object.keys(deepCache).length} constituencies from KV`);
+      }
+    }
+  } catch (e) {
+    console.log(`[KV] Load error: ${e.message}`);
+  }
+  kvLoaded = true;
+}
+
+async function saveToKV(env) {
+  if (!env.ELECTION_CACHE) return;
+  try {
+    await env.ELECTION_CACHE.put(KV_KEY, JSON.stringify({
+      data: deepCache,
+      timestamp: deepCacheTimestamp,
+      currentBatch,
+      savedAt: new Date().toISOString()
+    }));
+  } catch (e) {
+    console.log(`[KV] Save error: ${e.message}`);
+  }
+}
 
 const TOTAL_CONSTITUENCIES = 165;
 const TOTAL_BATCHES = Math.ceil(TOTAL_CONSTITUENCIES / BATCH_SIZE); // 11
@@ -430,7 +466,10 @@ function jsonResponse(data, status = 200) {
 }
 
 export default {
-  async fetch(request) {
+  async fetch(request, env) {
+    // Load deep cache from KV on cold start
+    await loadFromKV(env);
+
     if (request.method === 'OPTIONS') {
       return new Response(null, {
         status: 204,
@@ -449,8 +488,9 @@ export default {
     // ?status=true → return cache status for debugging
     if (params.status) {
       return jsonResponse({
-        version: 'v3.1-cf',
+        version: 'v3.1-cf-kv',
         deepCached: Object.keys(deepCache).length,
+        kvAvailable: !!env.ELECTION_CACHE,
         totalConstituencies: TOTAL_CONSTITUENCIES,
         totalBatches: TOTAL_BATCHES,
         currentBatch,
@@ -476,6 +516,15 @@ export default {
 
       if (!allCached || timeSinceDeep > 120000) {
         deepResult = await deepScrapeOneBatch();
+        // Persist updated cache to KV (non-blocking)
+        if (deepResult) {
+          env.ELECTION_CACHE && env.ELECTION_CACHE.put(KV_KEY, JSON.stringify({
+            data: deepCache,
+            timestamp: deepCacheTimestamp,
+            currentBatch,
+            savedAt: new Date().toISOString()
+          })).catch(() => {});
+        }
       }
 
       return jsonResponse(buildResponse(quick, deepResult, startTime));

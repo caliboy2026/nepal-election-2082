@@ -4,3 +4,7 @@ compatibility_date = "2024-09-25"
 
 [vars]
 ENVIRONMENT = "production"
+
+[[kv_namespaces]]
+binding = "ELECTION_CACHE"
+id = "382bd168233040b0bafaa7fbc848d072"
