@@ -239,9 +239,9 @@ function parseConstituencyPage(html, id) {
     if (photoMap[c.candidateId]) c.photo = photoMap[c.candidateId];
   }
 
-  // Check for "Elected" badge on the page → means result is declared
-  const hasElected = />\s*Elected\s*<\/span>/.test(html);
-  let apiStatus = hasElected ? 'won' : '';
+  // NepseBarjar shows "Elected" on all pages regardless of official declaration
+  // Actual won/counting status is determined client-side using party won counts
+  let apiStatus = '';
   let counted = '';
 
   candidates.sort((a, b) => b.votes - a.votes);
