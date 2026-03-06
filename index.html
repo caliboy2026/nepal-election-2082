@@ -965,33 +965,43 @@ function applyLiveData(apiData) {
   if (!apiData?.data) return false;
   let applied = false;
 
-  // Update party tallies — only accept HIGHER numbers (votes only go up during counting)
+  // SANITY LIMITS — reject obviously bad data
+  const MAX_SEATS = 165;     // Max FPTP seats any party can win/lead
+  const MAX_VOTES = 200000;  // Max votes per candidate in any constituency
+
+  // Update party tallies — only accept HIGHER numbers within sane limits
   if (apiData.data.parties && Object.keys(apiData.data.parties).length > 0) {
     for (const [key, vals] of Object.entries(apiData.data.parties)) {
       if (PARTIES[key]) {
-        const newTotal = (vals.won || 0) + (vals.leading || 0);
+        const newWon = vals.won || 0;
+        const newLeading = vals.leading || 0;
+        // Reject if numbers exceed possible limits (bad parse)
+        if (newWon > MAX_SEATS || newLeading > MAX_SEATS) {
+          console.warn(`[Data] REJECTED bad party data for ${key}: won=${newWon}, leading=${newLeading}`);
+          continue;
+        }
+        const newTotal = newWon + newLeading;
         const oldTotal = PARTIES[key].won + PARTIES[key].leading;
         if (newTotal >= oldTotal) {
-          PARTIES[key].won = Math.max(PARTIES[key].won, vals.won || 0);
-          PARTIES[key].leading = vals.leading ?? PARTIES[key].leading;
+          PARTIES[key].won = Math.max(PARTIES[key].won, newWon);
+          PARTIES[key].leading = newLeading;
           applied = true;
         }
       }
     }
   }
 
-  // Update constituency data — only accept HIGHER vote counts per candidate
+  // Update constituency data — only accept HIGHER vote counts within sane limits
   if (apiData.data.constituencies && apiData.data.constituencies.length > 0) {
     for (const liveConst of apiData.data.constituencies) {
       const local = fuzzyMatchConst(liveConst.name);
       if (local && liveConst.candidates && liveConst.candidates.length > 0) {
         for (const liveCand of liveConst.candidates) {
           const localCand = fuzzyMatchCandidate(local.candidates, liveCand.name);
-          if (localCand && liveCand.votes > 0) {
-            // Only update if new votes are HIGHER (votes never decrease)
+          if (localCand && liveCand.votes > 0 && liveCand.votes < MAX_VOTES) {
             if (liveCand.votes > localCand.votes) {
-              localCand.votes = liveCand.votes;
               console.log(`[Data] ${localCand.name}: ${localCand.votes} → ${liveCand.votes}`);
+              localCand.votes = liveCand.votes;
             }
             if (liveCand.photo) localCand.photoUrl = liveCand.photo;
           }
@@ -1038,8 +1048,20 @@ function loadCachedData() {
       console.log('[Cache] Cache expired (>24h), using hardcoded defaults');
       return false;
     }
-    // Apply cached party data — only if higher (votes never go down)
+    // Apply cached party data — only if higher AND within sane limits
     if (cache.parties) {
+      let cacheCorrupted = false;
+      for (const [k, v] of Object.entries(cache.parties)) {
+        if ((v.won || 0) > 165 || (v.leading || 0) > 165) {
+          cacheCorrupted = true;
+          break;
+        }
+      }
+      if (cacheCorrupted) {
+        console.warn('[Cache] Corrupted data detected, clearing cache');
+        localStorage.removeItem('nepal_election_2082_cache');
+        return false;
+      }
       for (const [k, v] of Object.entries(cache.parties)) {
         if (PARTIES[k]) {
           PARTIES[k].won = Math.max(PARTIES[k].won, v.won || 0);
