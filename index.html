@@ -135,6 +135,21 @@
   .vote-bar-mini { height:3px; background:var(--bg3); border-radius:2px; margin-top:5px; overflow:hidden; }
   .vote-bar-mini .fill { height:100%; border-radius:2px; transition:width 1s ease; }
 
+  /* Geo nav dropdowns */
+  .geo-nav { display:flex; gap:8px; margin-bottom:16px; align-items:center; flex-wrap:wrap; }
+  .geo-nav select { flex:1; min-width:120px; padding:10px 32px 10px 12px; background:var(--bg2); border:1px solid var(--border); border-radius:10px; color:var(--text); font-size:0.78rem; font-family:inherit; cursor:pointer; appearance:none; -webkit-appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%238b8fa3' viewBox='0 0 16 16'%3E%3Cpath d='M1.5 5.5l6.5 6.5 6.5-6.5'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; transition:border-color 0.2s; }
+  .geo-nav select:focus { outline:none; border-color:var(--accent); }
+  .geo-nav select:disabled { opacity:0.4; cursor:not-allowed; }
+  .geo-nav select option { background:var(--bg2); color:var(--text); }
+  .geo-clear { padding:8px 12px; background:transparent; border:1px solid var(--border); border-radius:8px; color:var(--text2); font-size:0.72rem; cursor:pointer; font-family:inherit; transition:all 0.2s; white-space:nowrap; }
+  .geo-clear:hover { background:var(--bg3); color:var(--text); }
+
+  /* Pin star */
+  .pin-btn { position:absolute; top:10px; right:10px; background:none; border:none; cursor:pointer; font-size:1rem; opacity:0.3; transition:opacity 0.2s, transform 0.2s; z-index:3; padding:4px; }
+  .pin-btn:hover { opacity:0.7; transform:scale(1.2); }
+  .pin-btn.pinned { opacity:1; }
+  .hot-card .featured-tag { right:32px; }
+
   .tab-bar { display:flex; gap:4px; margin-bottom:14px; flex-wrap:wrap; }
   .tab-btn { padding:7px 14px; border:1px solid var(--border); background:transparent; color:var(--text2); border-radius:8px; cursor:pointer; font-size:0.75rem; font-weight:500; font-family:inherit; transition:all 0.2s; }
   .tab-btn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
@@ -197,6 +212,20 @@
 </header>
 
 <div class="container">
+
+  <!-- Geographic Navigation -->
+  <div class="geo-nav animate-in">
+    <select id="geoProvince" onchange="onGeoProvince(this.value)">
+      <option value="">All Provinces</option>
+    </select>
+    <select id="geoDistrict" onchange="onGeoDistrict(this.value)" disabled>
+      <option value="">All Districts</option>
+    </select>
+    <select id="geoConst" onchange="onGeoConst(this.value)" disabled>
+      <option value="">All Constituencies</option>
+    </select>
+    <button class="geo-clear" onclick="clearGeoNav()" title="Clear selection">✕ Clear</button>
+  </div>
 
   <!-- Search -->
   <div class="search-container animate-in">
@@ -559,6 +588,144 @@ ALL_CONSTITUENCIES.forEach(c => {
   if (!constByProvince[prov]) constByProvince[prov] = [];
   constByProvince[prov].push(c);
 });
+
+// ═══════════════════════════════════════════════════
+// GEO NAV — Cascading Province → District → Constituency dropdowns
+// ═══════════════════════════════════════════════════
+let geoProvince = '';
+let geoDistrict = '';
+let geoConst = '';
+
+function extractDistrict(constName) {
+  // "Jhapa-5" → "Jhapa", "Rukum East-1" → "Rukum East", "Nawalparasi_E-1" → "Nawalparasi E"
+  const match = constName.match(/^(.+)-\d+$/);
+  return match ? match[1].replace(/_/g, ' ') : constName;
+}
+
+function getDistrictsForProvince(prov) {
+  const districts = new Set();
+  ALL_CONSTITUENCIES.forEach(c => {
+    if (c.province === prov) districts.add(extractDistrict(c.name));
+  });
+  return [...districts].sort();
+}
+
+function getConstForDistrict(prov, dist) {
+  return ALL_CONSTITUENCIES.filter(c => {
+    return c.province === prov && extractDistrict(c.name) === dist;
+  }).sort((a, b) => {
+    const numA = parseInt(a.name.match(/-(\d+)$/)?.[1]) || 0;
+    const numB = parseInt(b.name.match(/-(\d+)$/)?.[1]) || 0;
+    return numA - numB;
+  });
+}
+
+function populateGeoProvince() {
+  const sel = document.getElementById('geoProvince');
+  sel.innerHTML = '<option value="">All Provinces</option>';
+  PROVINCES.forEach(p => {
+    sel.innerHTML += `<option value="${p.name}">${p.name} (${p.nepali})</option>`;
+  });
+  sel.value = geoProvince;
+}
+
+function onGeoProvince(val) {
+  geoProvince = val;
+  geoDistrict = '';
+  geoConst = '';
+
+  const distSel = document.getElementById('geoDistrict');
+  const constSel = document.getElementById('geoConst');
+
+  if (val) {
+    const districts = getDistrictsForProvince(val);
+    distSel.innerHTML = '<option value="">All Districts</option>';
+    districts.forEach(d => { distSel.innerHTML += `<option value="${d}">${d}</option>`; });
+    distSel.disabled = false;
+  } else {
+    distSel.innerHTML = '<option value="">All Districts</option>';
+    distSel.disabled = true;
+  }
+  constSel.innerHTML = '<option value="">All Constituencies</option>';
+  constSel.disabled = true;
+
+  // Sync tab to province
+  if (val) {
+    activeTab = val;
+  } else {
+    activeTab = 'all';
+  }
+  renderConstituencyTabs();
+  renderConstituencies();
+}
+
+function onGeoDistrict(val) {
+  geoDistrict = val;
+  geoConst = '';
+
+  const constSel = document.getElementById('geoConst');
+
+  if (val && geoProvince) {
+    const consts = getConstForDistrict(geoProvince, val);
+    constSel.innerHTML = '<option value="">All Constituencies</option>';
+    consts.forEach(c => { constSel.innerHTML += `<option value="${c.name}">${c.name}</option>`; });
+    constSel.disabled = false;
+  } else {
+    constSel.innerHTML = '<option value="">All Constituencies</option>';
+    constSel.disabled = true;
+  }
+
+  renderConstituencies();
+}
+
+function onGeoConst(val) {
+  geoConst = val;
+  renderConstituencies();
+  // Scroll to the selected card
+  if (val) {
+    const cardId = val.replace(/[^a-zA-Z0-9]/g, '');
+    setTimeout(() => {
+      const el = document.getElementById('card-' + cardId);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+  }
+}
+
+function clearGeoNav() {
+  geoProvince = '';
+  geoDistrict = '';
+  geoConst = '';
+  document.getElementById('geoProvince').value = '';
+  document.getElementById('geoDistrict').innerHTML = '<option value="">All Districts</option>';
+  document.getElementById('geoDistrict').disabled = true;
+  document.getElementById('geoConst').innerHTML = '<option value="">All Constituencies</option>';
+  document.getElementById('geoConst').disabled = true;
+  activeTab = 'featured';
+  renderConstituencyTabs();
+  renderConstituencies();
+}
+
+// ═══════════════════════════════════════════════════
+// PIN / BOOKMARK — Save favourite constituencies
+// ═══════════════════════════════════════════════════
+let pinnedConsts = [];
+try {
+  pinnedConsts = JSON.parse(localStorage.getItem('nepal_election_pinned') || '[]');
+} catch(e) { pinnedConsts = []; }
+
+function togglePin(name) {
+  const idx = pinnedConsts.indexOf(name);
+  if (idx > -1) {
+    pinnedConsts.splice(idx, 1);
+  } else {
+    pinnedConsts.push(name);
+  }
+  localStorage.setItem('nepal_election_pinned', JSON.stringify(pinnedConsts));
+  renderConstituencyTabs();
+  renderConstituencies();
+}
+
+function isPinned(name) { return pinnedConsts.includes(name); }
 
 // ═══════════════════════════════════════════════════
 // PARTY DETAIL POPUP — Click won/leading to see candidates
@@ -978,7 +1145,9 @@ let activeTab = 'featured';
 // Returns all cards for the tab, but tags each with .match = true/false
 function getFilteredConstituencies(tabId) {
   let list;
-  if (tabId === 'featured') {
+  if (tabId === 'pinned') {
+    list = ALL_CONSTITUENCIES.filter(c => isPinned(c.name));
+  } else if (tabId === 'featured') {
     list = ALL_CONSTITUENCIES.filter(c => c.featured);
   } else if (tabId === 'kathmandu') {
     list = ALL_CONSTITUENCIES.filter(c => c.name.startsWith('Kathmandu') || c.name.startsWith('Lalitpur') || c.name.startsWith('Bhaktapur'));
@@ -986,6 +1155,19 @@ function getFilteredConstituencies(tabId) {
     list = ALL_CONSTITUENCIES;
   } else {
     list = ALL_CONSTITUENCIES.filter(c => c.province === tabId);
+  }
+
+  // Apply geo nav district/constituency filters on top of tab
+  if (geoDistrict) {
+    list = list.filter(c => extractDistrict(c.name) === geoDistrict);
+  }
+  if (geoConst) {
+    list = list.filter(c => c.name === geoConst);
+  }
+
+  // Sort pinned cards to the top (unless we're already on the pinned tab)
+  if (tabId !== 'pinned' && pinnedConsts.length > 0) {
+    list.sort((a, b) => (isPinned(b.name) ? 1 : 0) - (isPinned(a.name) ? 1 : 0));
   }
 
   const hasFilter = partyFilter || (searchQuery && searchQuery.length >= 2);
@@ -1020,7 +1202,11 @@ function getFilteredConstituencies(tabId) {
 }
 
 function renderConstituencyTabs() {
-  const tabs = [
+  const tabs = [];
+  if (pinnedConsts.length > 0) {
+    tabs.push({id:'pinned', label:`📌 Pinned (${pinnedConsts.length})`});
+  }
+  tabs.push(
     {id:'featured', label:'🔥 Key Battles'},
     {id:'kathmandu', label:'🏙️ Kathmandu Valley'},
     {id:'Koshi', label:'Koshi'},
@@ -1031,13 +1217,44 @@ function renderConstituencyTabs() {
     {id:'Karnali', label:'Karnali'},
     {id:'Sudurpashchim', label:'Sudurpashchim'},
     {id:'all', label:'📋 All'}
-  ];
+  );
   document.getElementById('constTabBar').innerHTML = tabs.map(t =>
     `<button class="tab-btn ${t.id===activeTab?'active':''}" onclick="switchTab('${t.id}')">${t.label}</button>`
   ).join('');
 }
 
-function switchTab(tabId) { activeTab=tabId; renderConstituencyTabs(); renderConstituencies(); }
+function switchTab(tabId) {
+  activeTab=tabId;
+  // Sync geo nav dropdown when clicking province tabs
+  const provinceNames = ['Koshi','Madhesh','Bagmati','Gandaki','Lumbini','Karnali','Sudurpashchim'];
+  if (provinceNames.includes(tabId)) {
+    geoProvince = tabId;
+    geoDistrict = '';
+    geoConst = '';
+    const sel = document.getElementById('geoProvince');
+    if (sel) sel.value = tabId;
+    const distSel = document.getElementById('geoDistrict');
+    const districts = getDistrictsForProvince(tabId);
+    distSel.innerHTML = '<option value="">All Districts</option>';
+    districts.forEach(d => { distSel.innerHTML += `<option value="${d}">${d}</option>`; });
+    distSel.disabled = false;
+    document.getElementById('geoConst').innerHTML = '<option value="">All Constituencies</option>';
+    document.getElementById('geoConst').disabled = true;
+  } else if (tabId !== 'pinned') {
+    // Reset dropdowns for non-province tabs (featured, all, kathmandu)
+    geoProvince = '';
+    geoDistrict = '';
+    geoConst = '';
+    const sel = document.getElementById('geoProvince');
+    if (sel) sel.value = '';
+    document.getElementById('geoDistrict').innerHTML = '<option value="">All Districts</option>';
+    document.getElementById('geoDistrict').disabled = true;
+    document.getElementById('geoConst').innerHTML = '<option value="">All Constituencies</option>';
+    document.getElementById('geoConst').disabled = true;
+  }
+  renderConstituencyTabs();
+  renderConstituencies();
+}
 
 function renderConstituencies() {
   const grid = document.getElementById('hotGrid');
@@ -1065,11 +1282,17 @@ function renderConstituencies() {
     // When party filter active: show only that party's candidate by default
     // with a toggle to expand and see all candidates
     const cardId = c.name.replace(/[^a-zA-Z0-9]/g,'');
+    const MAX_VISIBLE = 3;
     let displayCands = c.candidates;
     let hiddenCands = [];
     if (partyFilter && c._match) {
+      // Party filter: show filtered party candidates first, rest hidden
       displayCands = c.candidates.filter(cd => cd.party === partyFilter);
       hiddenCands = c.candidates.filter(cd => cd.party !== partyFilter);
+    } else if (c.candidates.length > MAX_VISIBLE) {
+      // Default: show top 3, rest collapsed
+      displayCands = c.candidates.slice(0, MAX_VISIBLE);
+      hiddenCands = c.candidates.slice(MAX_VISIBLE);
     }
 
     const renderCandRow = (cand) => {
@@ -1103,10 +1326,11 @@ function renderConstituencies() {
     const rows = displayCands.map(renderCandRow).join('');
     const hiddenRows = hiddenCands.length > 0
       ? `<div id="expand-${cardId}" style="display:none">${hiddenCands.map(renderCandRow).join('')}</div>
-         <button onclick="var el=document.getElementById('expand-${cardId}');var show=el.style.display==='none';el.style.display=show?'block':'none';this.textContent=show?'▲ Hide others':'▼ Show all ${c.candidates.length} candidates'" style="width:100%;background:none;border:1px solid var(--border);border-radius:8px;color:var(--text2);padding:6px;font-size:0.7rem;cursor:pointer;margin-top:6px;transition:color 0.2s">▼ Show all ${c.candidates.length} candidates</button>`
+         <button onclick="var el=document.getElementById('expand-${cardId}');var show=el.style.display==='none';el.style.display=show?'block':'none';this.textContent=show?'▲ Show less':'▼ +${hiddenCands.length} more candidates'" style="width:100%;background:none;border:1px solid var(--border);border-radius:8px;color:var(--text2);padding:6px;font-size:0.7rem;cursor:pointer;margin-top:6px;transition:color 0.2s">▼ +${hiddenCands.length} more candidates</button>`
       : '';
 
-    return `<div class="hot-card ${isFeatured?'featured':''} ${isMatch?'search-match':''} ${isDimmed?'dimmed':''}">
+    return `<div class="hot-card ${isFeatured?'featured':''} ${isMatch?'search-match':''} ${isDimmed?'dimmed':''}" id="card-${cardId}">
+      <button class="pin-btn ${isPinned(c.name)?'pinned':''}" onclick="event.stopPropagation();togglePin('${c.name.replace(/'/g,"\\'")}')" title="${isPinned(c.name)?'Unpin':'Pin'} ${c.name}">⭐</button>
       ${c.tag?`<div class="featured-tag">${c.tag}</div>`:''}
       <div class="constituency-name">${highlightText(c.name, searchQuery)}</div>
       <div style="font-size:0.68rem;color:var(--text2);margin-bottom:8px">📦 ${c.counted}</div>
@@ -1455,6 +1679,7 @@ function renderAll() {
   renderPartyTable();
   renderProvinces();
   renderPartyFilters();
+  populateGeoProvince();
   renderConstituencyTabs();
   renderConstituencies();
   updateSearchStatus();
