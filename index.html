@@ -1752,16 +1752,21 @@ function loadCachedData() {
   } catch (e) { console.warn('[Cache] Could not load:', e.message); return false; }
 }
 
+// ═══ API ENDPOINTS ═══
+// V3 API runs on Cloudflare Workers (free tier, 100K req/day)
+// V2/V1 remain on Netlify as fallbacks
+const CF_WORKER_URL = 'https://nepal-election-2082-api.evanjay.workers.dev';
+
 // ═══ MULTI-LAYER REFRESH: V3 → V2 → V1 → data.json → cache ═══
-// V3 = NepseBarjar server-side accumulated (quick + deep in one call)
-// V2 = NepseBarjar quick only (fallback)
+// V3 = NepseBarjar server-side accumulated (quick + deep in one call) — Cloudflare Worker
+// V2 = NepseBarjar quick only (fallback — Netlify)
 // V1 = Ekantipur (original fallback)
 async function refreshData() {
   fetchCount++;
 
   // Layer 1A: Try V3 API (NepseBarjar — server-side accumulated)
   try {
-    const res = await fetch('/.netlify/functions/election-data-v3', {
+    const res = await fetch(CF_WORKER_URL, {
       signal: AbortSignal.timeout(12000)
     });
     if (res.ok) {
