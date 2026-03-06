@@ -173,10 +173,39 @@ async function quickScrape() {
         result.partySeats[key] = {
           total: entry.y || 0,
           direct: (entry.y || 0) - (entry.propPortion || 0),
-          pr: entry.propPortion || 0
+          pr: entry.propPortion || 0,
+          leading: 0,
+          won: 0
         };
       }
     } catch (e) { /* ignore parse errors */ }
+  }
+
+  // Parse HTML table for Leading vs Win breakdown
+  // Table columns by td position: [0]=name, [1]=Leading, [2]=Win, [3]=PR, [4]=Total, ...
+  // Win column may contain "-" (dash) when no wins declared — must parse by position
+  const tableMatch = html.match(/Leading<\/th>([\s\S]*?)<\/table>/);
+  if (tableMatch) {
+    const tableHtml = tableMatch[1];
+    const rows = tableHtml.match(/<tr[\s\S]*?<\/tr>/g) || [];
+    for (const row of rows) {
+      const partyNameMatch = row.match(/text-\[15px\][^>]*>\s*([^<]+)/);
+      if (!partyNameMatch) continue;
+      const partyName = partyNameMatch[1].trim();
+      const key = normalizePartyByName(partyName);
+      if (key === 'OTH') continue;
+      // Extract td cells and parse by position
+      const tds = row.match(/<td[^>]*>[\s\S]*?<\/td>/g) || [];
+      const cellToNum = (td) => {
+        const clean = td.replace(/<[^>]+>/g, '').replace(/,/g, '').trim();
+        const m = clean.match(/^(\d+)/);
+        return m ? parseInt(m[1]) : 0;
+      };
+      if (tds.length >= 3 && result.partySeats[key]) {
+        result.partySeats[key].leading = cellToNum(tds[1]);  // td[1] = Leading
+        result.partySeats[key].won = cellToNum(tds[2]);       // td[2] = Win (0 if dash)
+      }
+    }
   }
 
   quickCache = result;
@@ -337,24 +366,20 @@ function buildResponse(quick, deepResult, startTime) {
     }
   }
 
-  // Build parties object — use parliamentChartData for official totals,
-  // deep cache wins as supplementary. Mark all deep-cache wins as "won"
-  // since election appears finalized.
+  // Build parties object — use HTML table Leading/Win breakdown (authoritative)
+  // parliamentChartData only gives combined direct (leading+won), not separate
   const parties = {};
-  // From deep cache: all counted as "won" (results are finalized)
-  for (const [key, count] of Object.entries(partyWins)) {
-    parties[key] = { won: count, leading: 0 };
-  }
-  // From parliamentChartData: use direct seat counts as authoritative
   if (quick.partySeats) {
     for (const [key, data] of Object.entries(quick.partySeats)) {
-      if (!parties[key]) parties[key] = { won: 0, leading: 0 };
-      // If parliament data shows more direct wins than our deep cache count,
-      // use parliament data (more authoritative for seats we haven't scraped yet)
-      if (data.direct > (parties[key].won || 0)) {
-        parties[key].won = data.direct;
-      }
+      parties[key] = {
+        won: data.won || 0,           // Officially declared wins from table
+        leading: data.leading || 0     // Currently leading from table
+      };
     }
+  }
+  // Supplement from deep cache for any parties not in parliamentChartData
+  for (const [key, count] of Object.entries(partyWins)) {
+    if (!parties[key]) parties[key] = { won: 0, leading: count };
   }
 
   return {

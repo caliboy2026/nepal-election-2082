@@ -758,6 +758,34 @@ function isPinned(name) { return pinnedConsts.includes(name); }
 // PARTY DETAIL POPUP — Click won/leading to see candidates
 // ═══════════════════════════════════════════════════
 // ═══ CNN-STYLE WINNER PROJECTION ═══
+// Precomputed set of constituency names inferred as "won" based on party won counts
+// Updated each render cycle by buildWonSet()
+let _wonSet = new Set();
+function buildWonSet() {
+  _wonSet = new Set();
+  // For each party with won > 0, rank their leading constituencies by margin
+  // and mark the top N (= party.won) as "won"
+  const partyGroups = {};
+  ALL_CONSTITUENCIES.forEach(c => {
+    if (!c.candidates || c.candidates.length < 2) return;
+    const sorted = [...c.candidates].sort((a, b) => b.votes - a.votes);
+    const leader = sorted[0];
+    if (!leader || leader.votes <= 0) return;
+    const party = PARTIES[leader.party];
+    if (!party || !party.won || party.won <= 0) return;
+    if (!partyGroups[leader.party]) partyGroups[leader.party] = [];
+    partyGroups[leader.party].push({
+      name: c.name,
+      margin: leader.votes - sorted[1].votes
+    });
+  });
+  for (const [partyKey, consts] of Object.entries(partyGroups)) {
+    const wonCount = PARTIES[partyKey].won;
+    consts.sort((a, b) => b.margin - a.margin);
+    consts.slice(0, wonCount).forEach(x => _wonSet.add(x.name));
+  }
+}
+
 // Returns: 'won'           → all booths counted or officially declared
 //          'likely_winner'  → mathematically impossible/very unlikely to lose
 //          'counting'       → still in play
@@ -771,25 +799,10 @@ function getConstStatus(c) {
   // 2. Explicit "won" tag from API source
   if (c.tag && c.tag.toLowerCase().includes('won')) return 'won';
 
-  // 3. No booth data but has candidates — infer from PARTIES won count
-  //    If party's official "won" count includes this constituency's leader
-  if (!parts && c.candidates && c.candidates.length >= 2) {
-    const sorted = [...c.candidates].sort((a, b) => b.votes - a.votes);
-    const leader = sorted[0];
-    if (leader && leader.votes > 0) {
-      const party = PARTIES[leader.party];
-      if (party && party.won > 0) {
-        // Count how many constituencies this party leads
-        const partyLeadCount = ALL_CONSTITUENCIES.filter(x => {
-          if (!x.candidates || x.candidates.length === 0) return false;
-          const top = x.candidates.reduce((a, b) => a.votes > b.votes ? a : b);
-          return top.party === leader.party;
-        }).length;
-        // If won count covers all or most leads, treat as won
-        if (party.won >= partyLeadCount) return 'won';
-      }
-    }
-  }
+  // 3. No booth data — check precomputed won set (built from party won counts)
+  //    NepseBajar gives party-level won/leading but not which specific seats.
+  //    buildWonSet() ranks each party's constituencies by margin, top N = won.
+  if (_wonSet.has(c.name)) return 'won';
 
   // 4. Mathematical projection — "Likely Winner"
   if (parts && c.candidates && c.candidates.length >= 2) {
@@ -1860,6 +1873,7 @@ async function refreshData() {
 
 function renderAll() {
   updateTimestamp();
+  buildWonSet();
   renderSeatBar();
   renderPartyTable();
   renderProjection();
