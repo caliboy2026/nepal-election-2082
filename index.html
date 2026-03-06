@@ -267,7 +267,7 @@ const PARTIES = {
   RSP: {
     name: "Rastriya Swatantra Party", short: "RSP",
     nepali: "राष्ट्रिय स्वतन्त्र पार्टी", symbol: "🔔", symbolName: "Bell",
-    color: "#e74c3c", won: 0, leading: 41, seats2022: 21,
+    color: "#e74c3c", won: 1, leading: 46, seats2022: 21,
     leader: "Rabi Lamichhane", pmCandidate: "Balendra Shah"
   },
   NC: {
@@ -285,7 +285,7 @@ const PARTIES = {
   NCP: {
     name: "Nepal Communist Party (Maoist Centre)", short: "NCP-MC",
     nepali: "नेकपा (माओवादी केन्द्र)", symbol: "🔨", symbolName: "Hammer",
-    color: "#9C27B0", won: 0, leading: 2, seats2022: 42,
+    color: "#9C27B0", won: 0, leading: 3, seats2022: 42,
     leader: "Pushpa Kamal Dahal", pmCandidate: "Pushpa Kamal Dahal"
   },
   RPP: {
@@ -320,76 +320,78 @@ const PARTIES = {
 
 const PROVINCES = [
   { name: "Koshi", nepali: "कोशी", seats: 28, districts: 14,
-    results: { RSP: 8, NC: 1, UML: 1, SSP: 1, NCP: 0 }},
+    results: { RSP: 6, UML: 1, SSP: 1, NC: 0, NCP: 0 }},
   { name: "Madhesh", nepali: "मधेश", seats: 32, districts: 8,
-    results: { RSP: 6, NC: 1, UML: 0, JSP: 0 }},
+    results: { RSP: 7, NC: 0, UML: 0, JSP: 0 }},
   { name: "Bagmati", nepali: "बागमती", seats: 33, districts: 13,
-    results: { RSP: 16, NC: 1, UML: 1, NCP: 0, UNP: 0, RPP: 0 }},
+    results: { RSP: 17, UML: 1, NC: 1, NCP: 0, UNP: 0, RPP: 0 }},
   { name: "Gandaki", nepali: "गण्डकी", seats: 18, districts: 11,
-    results: { RSP: 5, NC: 1, UML: 1, NCP: 0 }},
+    results: { RSP: 5, UML: 1, NCP: 1, NC: 0 }},
   { name: "Lumbini", nepali: "लुम्बिनी", seats: 26, districts: 12,
-    results: { RSP: 8, UML: 1, NC: 0, NCP: 0 }},
+    results: { RSP: 9, UML: 2, NC: 1, NCP: 1 }},
   { name: "Karnali", nepali: "कर्णाली", seats: 12, districts: 10,
-    results: { NCP: 1, NC: 1, UML: 1, RSP: 0 }},
+    results: { NC: 2, RPP: 1, NCP: 1, RSP: 0 }},
   { name: "Sudurpashchim", nepali: "सुदूरपश्चिम", seats: 16, districts: 9,
-    results: { RSP: 3, NCP: 1, RPP: 1, NC: 0, UML: 0 }}
+    results: { RSP: 3, NC: 1, NCP: 0, UML: 0 }}
 ];
 
 // Comprehensive constituency data from all sources
 const ALL_CONSTITUENCIES = [
   // ═══ KEY BATTLES ═══
-  { name:"Jhapa-5", province:"Koshi", tag:"PM BATTLE", featured:true, counted:"24 of 43 booths",
+  { name:"Jhapa-5", province:"Koshi", tag:"PM BATTLE", featured:true, counted:"38 of 43 booths",
     candidates:[
-      {name:"Balendra Shah (Balen)", party:"RSP", votes:4850, photo:"🧑‍🎤", aka:"Balen Shah"},
-      {name:"K.P. Sharma Oli", party:"UML", votes:1285, photo:"🧔"},
-      {name:"Ranjit Tamang", party:"NCP", votes:312, photo:"👤"}
+      {name:"Balendra Shah (Balen)", party:"RSP", votes:10190, photo:"🧑‍🎤", aka:"Balen Shah"},
+      {name:"K.P. Sharma Oli", party:"UML", votes:4087, photo:"🧔"},
+      {name:"Mandhara Chimariya", party:"NC", votes:78, photo:"👤"}
     ]},
-  { name:"Chitwan-2", province:"Bagmati", tag:"RSP CHIEF", featured:true, counted:"30 of 48 booths",
+  { name:"Chitwan-2", province:"Bagmati", tag:"RSP CHIEF", featured:true, counted:"35 of 48 booths",
     candidates:[
-      {name:"Rabi Lamichhane", party:"RSP", votes:8265, photo:"🧑‍💼"},
-      {name:"Asmin Ghimire", party:"UML", votes:3518, photo:"👤"},
-      {name:"Ram Narayan Bidari", party:"NC", votes:1540, photo:"👤"}
+      {name:"Rabi Lamichhane", party:"RSP", votes:3963, photo:"🧑‍💼"},
+      {name:"Asmin Ghimire", party:"UML", votes:1947, photo:"👤"},
+      {name:"Mina Kumari Kharel", party:"NC", votes:1750, photo:"👩"},
+      {name:"Pratap Gurung", party:"NCP", votes:1454, photo:"👤"}
     ]},
-  { name:"Chitwan-3", province:"Bagmati", tag:"DAHAL SEAT", featured:true, counted:"18 of 39 booths",
+  { name:"Chitwan-3", province:"Bagmati", tag:"DAHAL SEAT", featured:true, counted:"28 of 39 booths",
     candidates:[
-      {name:"Sobita Gautam", party:"RSP", votes:4485, photo:"👩"},
-      {name:"Renu Dahal", party:"NCP", votes:2786, photo:"👩"}
+      {name:"Sobita Gautam", party:"RSP", votes:3693, photo:"👩"},
+      {name:"Renu Dahal", party:"NCP", votes:2263, photo:"👩"}
     ]},
-  { name:"Rukum East-1", province:"Lumbini", tag:"PRACHANDA", featured:true, counted:"20 of 34 booths",
+  { name:"Rukum East-1", province:"Lumbini", tag:"PRACHANDA", featured:true, counted:"24 of 34 booths",
     candidates:[
-      {name:"Pushpa Kamal Dahal (Prachanda)", party:"NCP", votes:3415, photo:"🧔", aka:"Prachanda"},
-      {name:"Lilamani Gautam", party:"UML", votes:1231, photo:"👤"}
+      {name:"Pushpa Kamal Dahal (Prachanda)", party:"NCP", votes:1415, photo:"🧔", aka:"Prachanda"},
+      {name:"Lilamani Gautam", party:"UML", votes:431, photo:"👤"},
+      {name:"Kusum Devi Thapa", party:"NC", votes:417, photo:"👩"}
     ]},
 
   // ═══ KATHMANDU VALLEY ═══
-  { name:"Kathmandu-1", province:"Bagmati", counted:"42 of 52 booths",
+  { name:"Kathmandu-1", province:"Bagmati", counted:"50 of 52 booths",
     candidates:[
-      {name:"Ranju Neupane", party:"RSP", votes:12078, photo:"👩"},
-      {name:"Prabal Thapa Chhetri", party:"NC", votes:5216, photo:"👤"},
-      {name:"Ravindra Mishra", party:"RPP", votes:2744, photo:"👤"}
+      {name:"Ranju Neupane", party:"RSP", votes:15455, photo:"👩"},
+      {name:"Prabal Thapa Chhetri", party:"NC", votes:6364, photo:"👤"},
+      {name:"Ravindra Mishra", party:"RPP", votes:3972, photo:"👤"}
     ]},
   { name:"Kathmandu-2", province:"Bagmati", counted:"18 of 46 booths",
     candidates:[
       {name:"Sagar Raj Bhandari", party:"RSP", votes:3822, photo:"👤"},
       {name:"Pradeep Gyawali", party:"UML", votes:1456, photo:"👤"}
     ]},
-  { name:"Kathmandu-3", province:"Bagmati", tag:"KULMAN VS RSP", counted:"28 of 44 booths",
+  { name:"Kathmandu-3", province:"Bagmati", tag:"KULMAN VS RSP", counted:"36 of 44 booths",
     candidates:[
-      {name:"Raju Nath Pande", party:"RSP", votes:6649, photo:"👤"},
-      {name:"Kulman Ghising", party:"UNP", votes:4541, photo:"🧑‍💼"},
+      {name:"Raju Nath Pande", party:"RSP", votes:6584, photo:"👤"},
+      {name:"Kulman Ghising", party:"UNP", votes:4220, photo:"🧑‍💼"},
       {name:"Ramesh Aryal", party:"NC", votes:1481, photo:"👤"}
     ]},
-  { name:"Kathmandu-4", province:"Bagmati", counted:"34 of 50 booths",
+  { name:"Kathmandu-4", province:"Bagmati", counted:"42 of 50 booths",
     candidates:[
-      {name:"Pukar Bam", party:"RSP", votes:7922, photo:"👤"},
-      {name:"Rajan Bhattarai", party:"UML", votes:1956, photo:"👤"},
-      {name:"Sachin Timalsena", party:"NC", votes:1295, photo:"👤"}
+      {name:"Pukar Bam", party:"RSP", votes:6282, photo:"👤"},
+      {name:"Sachin Timilsina", party:"NC", votes:1899, photo:"👤"},
+      {name:"Rajan Bhattarai", party:"UML", votes:1479, photo:"👤"}
     ]},
-  { name:"Kathmandu-5", province:"Bagmati", counted:"30 of 47 booths",
+  { name:"Kathmandu-5", province:"Bagmati", counted:"40 of 47 booths",
     candidates:[
-      {name:"Sasmit Pokharel", party:"RSP", votes:6834, photo:"👤"},
-      {name:"Pradip Poudel", party:"NC", votes:2231, photo:"👤"},
-      {name:"Ishwor Pokharel", party:"UML", votes:1207, photo:"👤"}
+      {name:"Sasmit Pokharel", party:"RSP", votes:9124, photo:"👤"},
+      {name:"Pradip Poudel", party:"NC", votes:2887, photo:"👤"},
+      {name:"Ishwor Pokharel", party:"UML", votes:1558, photo:"👤"}
     ]},
   { name:"Kathmandu-6", province:"Bagmati", counted:"12 of 41 booths",
     candidates:[
@@ -401,10 +403,11 @@ const ALL_CONSTITUENCIES = [
       {name:"Ganesh Parajuli", party:"RSP", votes:4833, photo:"👤"},
       {name:"Mani Ram Phuyal", party:"NC", votes:1580, photo:"👤"}
     ]},
-  { name:"Kathmandu-8", province:"Bagmati", counted:"36 of 45 booths",
+  { name:"Kathmandu-8", province:"Bagmati", counted:"40 of 45 booths",
     candidates:[
-      {name:"Biraj Bhakta Shrestha", party:"RSP", votes:9617, photo:"👤"},
-      {name:"Sapana Rajbhandari", party:"NC", votes:1490, photo:"👩"}
+      {name:"Biraj Bhakta Shrestha", party:"RSP", votes:1714, photo:"👤"},
+      {name:"Sapana Rajbhandari", party:"NC", votes:207, photo:"👩"},
+      {name:"Suman Sayami", party:"NCP", votes:154, photo:"👤"}
     ]},
   { name:"Kathmandu-9", province:"Bagmati", counted:"14 of 40 booths",
     candidates:[
@@ -421,10 +424,11 @@ const ALL_CONSTITUENCIES = [
       {name:"Ranjana Thapa", party:"RSP", votes:3200, photo:"👩"},
       {name:"Bijay Shrestha", party:"NC", votes:1100, photo:"👤"}
     ]},
-  { name:"Lalitpur-3", province:"Bagmati", counted:"20 of 33 booths",
+  { name:"Lalitpur-3", province:"Bagmati", counted:"28 of 33 booths",
     candidates:[
-      {name:"Tosima Karki", party:"RSP", votes:4379, photo:"👩"},
-      {name:"Jitendra Kumar Shrestha", party:"NC", votes:568, photo:"👤"}
+      {name:"Tosima Karki", party:"RSP", votes:4535, photo:"👩"},
+      {name:"Jitendra Kumar Shrestha", party:"NC", votes:836, photo:"👤"},
+      {name:"Raj Kaji Maharjan", party:"NCP", votes:265, photo:"👤"}
     ]},
   { name:"Bhaktapur-1", province:"Bagmati", counted:"16 of 32 booths",
     candidates:[
@@ -470,10 +474,16 @@ const ALL_CONSTITUENCIES = [
       {name:"Bijay Yadav", party:"RSP", votes:1150, photo:"👤"},
       {name:"Mahendra Yadav", party:"JSP", votes:920, photo:"👤"}
     ]},
-  { name:"Tanahun-1", province:"Gandaki", counted:"18 of 36 booths",
+  { name:"Rupandehi-2", province:"Lumbini", tag:"RSP SURGE", counted:"38 of 44 booths",
     candidates:[
-      {name:"Swornim Wagle", party:"RSP", votes:3352, photo:"👤"},
-      {name:"Shekhar Subedi", party:"NC", votes:1280, photo:"👤"}
+      {name:"Sulabh Kharel", party:"RSP", votes:7158, photo:"👤"},
+      {name:"Vishnu Prasad Paudel", party:"UML", votes:1659, photo:"👤"},
+      {name:"Chunn Prasad Sharma Paudel", party:"NC", votes:734, photo:"👤"}
+    ]},
+  { name:"Tanahun-1", province:"Gandaki", counted:"26 of 36 booths",
+    candidates:[
+      {name:"Swornim Wagle", party:"RSP", votes:2131, photo:"👤"},
+      {name:"Govinda Bhattarai", party:"NC", votes:631, photo:"👤"}
     ]},
   { name:"Kaski-2", province:"Gandaki", counted:"14 of 35 booths",
     candidates:[
