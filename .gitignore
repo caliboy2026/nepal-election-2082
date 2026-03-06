@@ -1,3 +1,5 @@
 node_modules/
 .netlify/
 .env
+.claude-memory.json
+.claude-memory/

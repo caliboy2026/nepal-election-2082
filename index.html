@@ -1296,11 +1296,32 @@ function loadCachedData() {
   } catch (e) { console.warn('[Cache] Could not load:', e.message); return false; }
 }
 
-// Three-layer refresh: Live API → static data.json → keep last known data
+// ═══ MULTI-LAYER REFRESH: v2 → v1 → data.json → cache ═══
+// v2 = NepseBarjar (faster, cleaner), v1 = Ekantipur (original)
 async function refreshData() {
   fetchCount++;
 
-  // Layer 1: Try live serverless API
+  // Layer 1A: Try v2 API (NepseBarjar — quick scrape)
+  try {
+    const res = await fetch('/.netlify/functions/election-data-v2', {
+      signal: AbortSignal.timeout(10000)
+    });
+    if (res.ok) {
+      const apiData = await res.json();
+      const applied = applyLiveData(apiData);
+      dataSource = 'live';
+      lastFetchOk = true;
+      if (applied) cacheDataToStorage();
+      const srcNames = (apiData.sources?.successful || []).map(s => s.name || s).join(', ');
+      console.log(`[Refresh #${fetchCount}] 🟢 V2 LIVE ${applied ? 'updated' : '(no change)'} from: ${srcNames} (${apiData.fetchDurationMs}ms)`);
+      renderAll();
+      return;
+    }
+  } catch (err) {
+    console.log(`[Refresh #${fetchCount}] V2 API failed: ${err.message}`);
+  }
+
+  // Layer 1B: Fallback to v1 API (Ekantipur)
   try {
     const res = await fetch('/.netlify/functions/election-data', {
       signal: AbortSignal.timeout(10000)
@@ -1308,17 +1329,16 @@ async function refreshData() {
     if (res.ok) {
       const apiData = await res.json();
       const applied = applyLiveData(apiData);
-      // Always update timestamp and re-render when API responds — even if no new data
       dataSource = 'live';
       lastFetchOk = true;
       if (applied) cacheDataToStorage();
       const srcNames = (apiData.sources?.successful || []).map(s => s.name || s).join(', ');
-      console.log(`[Refresh #${fetchCount}] 🟢 LIVE ${applied ? 'updated' : '(no change)'} from: ${srcNames} (${apiData.fetchDurationMs}ms)`);
+      console.log(`[Refresh #${fetchCount}] 🟡 V1 LIVE ${applied ? 'updated' : '(no change)'} from: ${srcNames} (${apiData.fetchDurationMs}ms)`);
       renderAll();
       return;
     }
   } catch (err) {
-    console.log(`[Refresh #${fetchCount}] Live API failed: ${err.message}`);
+    console.log(`[Refresh #${fetchCount}] V1 API failed: ${err.message}`);
   }
 
   // Layer 2: Try static data.json (updated manually or by CI)
@@ -1345,6 +1365,85 @@ async function refreshData() {
   lastFetchOk = false;
   console.log(`[Refresh #${fetchCount}] ⚪ All sources unavailable, keeping last known data`);
   renderAll();
+}
+
+// ═══ DEEP SCRAPE: Background constituency detail fetcher ═══
+// Cycles through batches every 5 minutes, building full candidate lists
+let deepBatch = 0;
+let deepTotalBatches = 11; // 165 / 15 = 11 batches
+let deepLastRun = 0;
+
+async function deepScrape() {
+  try {
+    const res = await fetch(`/.netlify/functions/election-data-v2-deep?batch=${deepBatch}`, {
+      signal: AbortSignal.timeout(15000)
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    deepTotalBatches = data.totalBatches || 11;
+
+    if (data.constituencies && data.constituencies.length > 0) {
+      // Apply deep data — these have full candidate lists
+      let updated = 0;
+      for (const deepConst of data.constituencies) {
+        // Find matching local constituency
+        const local = ALL_CONSTITUENCIES.find(c => {
+          const localNorm = c.name.toLowerCase().replace(/[\s-]+/g, '');
+          const deepNorm = deepConst.name.toLowerCase().replace(/[\s-]+/g, '');
+          return localNorm === deepNorm || localNorm.includes(deepNorm) || deepNorm.includes(localNorm);
+        });
+        if (local && deepConst.candidates && deepConst.candidates.length > 0) {
+          // Deep scrape has ALL candidates — merge by replacing if we have more candidates
+          // or if vote counts are higher
+          const deepTop = deepConst.candidates[0];
+          const localTop = local.candidates[0];
+
+          // If deep has more candidates, update the full list
+          if (deepConst.candidates.length > local.candidates.length) {
+            // Map deep candidates to our format
+            const newCandidates = deepConst.candidates.map(dc => ({
+              name: dc.name,
+              party: dc.party,
+              votes: dc.votes,
+              photo: dc.photo || local.candidates.find(lc => lc.party === dc.party)?.photo || '👤'
+            }));
+            // Only accept if top candidate votes are >= what we have (no regression)
+            if (!localTop || deepTop.votes >= localTop.votes) {
+              local.candidates = newCandidates;
+              updated++;
+            }
+          } else {
+            // Same or fewer candidates — just update vote counts (only higher)
+            for (const dc of deepConst.candidates) {
+              const lc = local.candidates.find(c => c.party === dc.party);
+              if (lc && dc.votes > lc.votes) {
+                lc.votes = dc.votes;
+                if (dc.name) lc.name = dc.name;
+                if (dc.photo && dc.photo.startsWith('http')) lc.photo = dc.photo;
+                updated++;
+              }
+            }
+          }
+
+          // Store pdniCenterId for future deep scrapes
+          if (deepConst.pdniCenterId) local.pdniCenterId = deepConst.pdniCenterId;
+          if (deepConst.province) local.province = deepConst.province;
+        }
+      }
+
+      if (updated > 0) {
+        cacheDataToStorage();
+        renderAll();
+      }
+      console.log(`[Deep #${deepBatch}/${deepTotalBatches}] Updated ${updated} constituencies (${data.fetched} fetched, ${data.failed} failed, ${data.fetchDurationMs}ms)`);
+    }
+
+    // Advance to next batch (wraps around)
+    deepBatch = (deepBatch + 1) % deepTotalBatches;
+    deepLastRun = Date.now();
+  } catch (err) {
+    console.log(`[Deep #${deepBatch}] Failed: ${err.message}`);
+  }
 }
 
 function renderAll() {
@@ -1380,6 +1479,11 @@ function tick() {
   loadCachedData();
   await refreshData();  // wait for first API call before showing anything
   setInterval(tick, 1000);
+  // Start deep scrape cycle: first batch after 10s, then every 5 minutes
+  setTimeout(() => {
+    deepScrape();
+    setInterval(deepScrape, 5 * 60 * 1000);
+  }, 10000);
 })();
 </script>
 </body>
