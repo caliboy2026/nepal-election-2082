@@ -78,64 +78,47 @@ async function fetchWithTimeout(url, timeoutMs = 10000) {
 }
 
 // ═══ EKANTIPUR HTML PARSER ═══
-// Extracts party results and constituency data from embedded JS
+// Ekantipur returns HTML, not JSON. Data is in:
+// 1. Party results: HTML links like /party/7/elected with "1" and /party/7/leading with "56"
+// 2. Constituency results: JS variable "competiviveDist" with candidate objects
 function parseEkantipurHTML(html) {
   const result = { parties: {}, constituencies: [] };
+  const MAX_SEATS = 165;
 
-  // 1. Extract party data from HTML
-  // Look for patterns like: party_name: "RSP", win: 1, lead: 52
-  // Or table rows with party names and numbers
-  const partyPatterns = [
-    // JS object format: {party_name: "...", win: N, lead: N}
-    /party_name['":\s]*['"]([^'"]+)['"][^}]*?win['":\s]*(\d+)[^}]*?lead['":\s]*(\d+)/gi,
-    // Reverse order: lead then win
-    /party_name['":\s]*['"]([^'"]+)['"][^}]*?lead['":\s]*(\d+)[^}]*?win['":\s]*(\d+)/gi,
-  ];
+  // ── PARTY DATA ──
+  // Ekantipur format: each party is a block starting with /party/N?
+  // containing party name, then /party/N/elected with won count, /party/N/leading with lead count
+  const partyBlocks = html.split(/(?=<a[^>]*href=["']\/party\/\d+\?)/i);
+  for (const block of partyBlocks) {
+    const electedMatch = block.match(/\/elected[^>]*>\s*(\d+)/);
+    const leadingMatch = block.match(/\/leading[^>]*>\s*(\d+)/);
+    if (!electedMatch || !leadingMatch) continue;
 
-  for (const pat of partyPatterns) {
-    let match;
-    while ((match = pat.exec(html)) !== null) {
-      const key = normalizeParty(match[1]);
-      const won = parseInt(match[2]) || 0;
-      const leading = parseInt(match[3]) || 0;
-      if (!result.parties[key]) result.parties[key] = { won: 0, leading: 0 };
-      result.parties[key].won = Math.max(result.parties[key].won, won);
-      result.parties[key].leading = Math.max(result.parties[key].leading, leading);
-    }
-  }
+    // Find party name in this block
+    const nameMatch = block.match(/>([^<]*(?:Party|Congress|UML|Maoist|Communist|Prajatantra|Shram|Samajwadi|Samjbadi|Ujyalo|Ujaylo|Independent)[^<]*)</i);
+    if (!nameMatch) continue;
 
-  // Also try: "Win" and "Lead" as separate numbers near party names in HTML tables
-  const tablePartyPattern = /<td[^>]*>([^<]*(?:Swatantra|Congress|UML|Maoist|Prajatantra|Shram|Samajwadi|Ujyalo|Ujaylo)[^<]*)<\/td>[\s\S]*?<td[^>]*>(\d+)<\/td>[\s\S]*?<td[^>]*>(\d+)<\/td>/gi;
-  let tMatch;
-  while ((tMatch = tablePartyPattern.exec(html)) !== null) {
-    const key = normalizeParty(tMatch[1]);
-    const num1 = parseInt(tMatch[2]) || 0;
-    const num2 = parseInt(tMatch[3]) || 0;
+    const key = normalizeParty(nameMatch[1].trim());
+    const won = parseInt(electedMatch[1]) || 0;
+    const leading = parseInt(leadingMatch[1]) || 0;
+
+    if (won > MAX_SEATS || leading > MAX_SEATS) continue;
     if (!result.parties[key]) result.parties[key] = { won: 0, leading: 0 };
-    // Smaller number is usually won, larger is leading
-    result.parties[key].won = Math.max(result.parties[key].won, Math.min(num1, num2));
-    result.parties[key].leading = Math.max(result.parties[key].leading, Math.max(num1, num2));
+    result.parties[key].won = Math.max(result.parties[key].won, won);
+    result.parties[key].leading = Math.max(result.parties[key].leading, leading);
   }
 
-  // 2. Extract competiviveDist data (constituency results)
-  // Format: competiviveDist = {"jhapa-5": [{name: "...", vote_count: N, party_name: "..."}]}
-  const compMatch = html.match(/competiviveDist\s*=\s*(\{[\s\S]*?\});\s*(?:var|let|const|function|<\/script>)/);
+  // ── CONSTITUENCY DATA from competiviveDist ──
+  // Format: competiviveDist = {"jhapa-5": [{id, name, vote_count, party_name, image, ...}]}
+  // Use a greedy match since the object can be large
+  const compMatch = html.match(/competiviveDist\s*=\s*(\{[\s\S]*?\})\s*;/);
   if (compMatch) {
     try {
-      // Convert JS object to valid JSON (handle unquoted keys)
-      let jsObj = compMatch[1];
-      // Replace single quotes with double quotes
-      jsObj = jsObj.replace(/'/g, '"');
-      // Quote unquoted keys: word: -> "word":
-      jsObj = jsObj.replace(/(\w+)\s*:/g, '"$1":');
-      // Fix double-quoted keys that were already quoted
-      jsObj = jsObj.replace(/""/g, '"');
-
-      const constData = JSON.parse(jsObj);
+      // The data is already valid JSON (quoted keys from Ekantipur's server)
+      const constData = JSON.parse(compMatch[1]);
       for (const [constKey, candidates] of Object.entries(constData)) {
         if (Array.isArray(candidates) && candidates.length > 0) {
-          // Convert "jhapa-5" to "Jhapa-5"
-          const constName = constKey.replace(/\b\w/g, c => c.toUpperCase());
+          const constName = constKey.replace(/(^|-)(\w)/g, (m, sep, c) => sep + c.toUpperCase());
           result.constituencies.push({
             name: constName,
             normalizedName: normalizeConstName(constKey),
@@ -146,49 +129,38 @@ function parseEkantipurHTML(html) {
               party: normalizeParty(c.party_name || ''),
               votes: c.vote_count || 0,
               photo: c.image || ''
-            })).filter(c => c.name)
+            })).filter(c => c.name && c.votes > 0)
           });
         }
       }
     } catch (e) {
-      // JS object parsing failed — try extracting individual candidates
-      console.log('competitiveDist parse failed:', e.message);
-    }
-  }
-
-  // 3. Fallback: extract individual candidate entries from HTML
-  // Pattern: name, party, vote_count scattered in JS data
-  const candPattern = /name['":\s]*['"]([^'"]{3,50})['"][^}]*?party_name['":\s]*['"]([^'"]+)['"][^}]*?vote_count['":\s]*(\d+)/gi;
-  const candsByConst = {};
-  let cMatch;
-  while ((cMatch = candPattern.exec(html)) !== null) {
-    const name = cMatch[1];
-    const party = normalizeParty(cMatch[2]);
-    const votes = parseInt(cMatch[3]) || 0;
-
-    // Try to find constituency from nearby context
-    const nearby = html.substring(Math.max(0, cMatch.index - 200), cMatch.index);
-    const distMatch = nearby.match(/district_name['":\s]*['"](\w+)['"][^}]*?region_num['":\s]*(\d+)/i) ||
-                      nearby.match(/['"](\w+-\d+)['"]/);
-    if (distMatch) {
-      const constName = distMatch[2] ? `${distMatch[1]}-${distMatch[2]}` : distMatch[1];
-      const normName = normalizeConstName(constName);
-      if (!candsByConst[normName]) {
-        candsByConst[normName] = {
-          name: constName.replace(/\b\w/g, c => c.toUpperCase()),
-          normalizedName: normName,
-          candidates: []
-        };
+      // JSON.parse failed — try cleaning the JS object
+      try {
+        let jsObj = compMatch[1];
+        jsObj = jsObj.replace(/'/g, '"');
+        jsObj = jsObj.replace(/(\w+)\s*:/g, '"$1":');
+        jsObj = jsObj.replace(/""/g, '"');
+        const constData = JSON.parse(jsObj);
+        for (const [constKey, candidates] of Object.entries(constData)) {
+          if (Array.isArray(candidates) && candidates.length > 0) {
+            const constName = constKey.replace(/(^|-)(\w)/g, (m, sep, c) => sep + c.toUpperCase());
+            result.constituencies.push({
+              name: constName,
+              normalizedName: normalizeConstName(constKey),
+              province: candidates[0].pradesh_name || '',
+              counted: '',
+              candidates: candidates.map(c => ({
+                name: c.name || '',
+                party: normalizeParty(c.party_name || ''),
+                votes: c.vote_count || 0,
+                photo: c.image || ''
+              })).filter(c => c.name && c.votes > 0)
+            });
+          }
+        }
+      } catch (e2) {
+        console.log('competitiveDist parse failed:', e2.message);
       }
-      candsByConst[normName].candidates.push({ name, party, votes });
-    }
-  }
-
-  // Merge individual candidates into constituency results (avoid duplicates)
-  for (const [normName, constData] of Object.entries(candsByConst)) {
-    const existing = result.constituencies.find(c => c.normalizedName === normName);
-    if (!existing && constData.candidates.length > 0) {
-      result.constituencies.push(constData);
     }
   }
 

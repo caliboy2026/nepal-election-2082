@@ -3,8 +3,8 @@
   "source": "manual-scrape-v2",
   "data": {
     "parties": {
-      "RSP": { "won": 1, "leading": 52 },
-      "NC": { "won": 0, "leading": 8 },
+      "RSP": { "won": 1, "leading": 56 },
+      "NC": { "won": 1, "leading": 8 },
       "UML": { "won": 0, "leading": 4 },
       "NCP": { "won": 0, "leading": 3 },
       "RPP": { "won": 0, "leading": 1 },
