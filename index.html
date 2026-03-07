@@ -1528,7 +1528,6 @@ function renderConstituencies() {
       <button class="pin-btn ${isPinned(c.name)?'pinned':''}" onclick="event.stopPropagation();togglePin('${c.name.replace(/'/g,"\\'")}')" title="${isPinned(c.name)?'Unpin':'Pin'} ${c.name}">⭐</button>
       ${c.tag?`<div class="featured-tag">${c.tag}</div>`:''}
       <div class="constituency-name">${highlightText(c.name, searchQuery)}${statusBadge}</div>
-      <div style="font-size:0.68rem;color:var(--text2);margin-bottom:8px">📦 ${c.counted}</div>
       ${rows}
       ${hiddenRows}
     </div>`;
