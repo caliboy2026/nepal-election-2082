@@ -282,6 +282,35 @@ async function quickScrapeOnlineKhabar() {
 }
 
 // ═══ QUICK SCRAPE: Alternate between NepseBajar and OnlineKhabar ═══
+// Merges results using high-water mark: won can only increase (a win can't be undeclared).
+// Leading uses the latest value since it can legitimately decrease as seats get declared.
+function mergeWithHighWaterMark(newResult) {
+  if (!quickCache || !quickCache.partySeats) return newResult;
+
+  for (const [key, newData] of Object.entries(newResult.partySeats)) {
+    const prev = quickCache.partySeats[key];
+    if (prev) {
+      // Won only goes up — keep the higher value across sources
+      newData.won = Math.max(newData.won || 0, prev.won || 0);
+      // Leading: use (total from higher source) - won, so it stays consistent
+      // If new source has higher total (won+leading), trust it for leading
+      const newTotal = (newData.won || 0) + (newData.leading || 0);
+      const prevTotal = (prev.won || 0) + (prev.leading || 0);
+      if (prevTotal > newTotal) {
+        newData.leading = prevTotal - newData.won;
+      }
+    }
+  }
+  // Carry forward any parties that the new source didn't return
+  for (const [key, prevData] of Object.entries(quickCache.partySeats)) {
+    if (!newResult.partySeats[key]) {
+      newResult.partySeats[key] = prevData;
+    }
+  }
+
+  return newResult;
+}
+
 async function quickScrape() {
   const now = Date.now();
   if (quickCache && (now - quickCacheTimestamp) < 25000) {
@@ -317,6 +346,9 @@ async function quickScrape() {
       throw e2;
     }
   }
+
+  // Merge with high-water mark so won never decreases across sources
+  result = mergeWithHighWaterMark(result);
 
   quickCache = result;
   quickCacheTimestamp = now;
