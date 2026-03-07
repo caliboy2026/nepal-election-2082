@@ -175,28 +175,34 @@
   .pin-btn.pinned { opacity:1; }
   .hot-card .featured-tag { right:32px; }
 
-  /* EJ Designs Projection Panel */
-  .projection-panel { background:var(--bg2); border:1px solid var(--border); border-radius:16px; padding:20px; margin-bottom:20px; }
-  .projection-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
-  .projection-header h3 { font-size:1rem; font-weight:700; margin:0; }
-  .projection-brand { font-size:0.6rem; color:var(--text2); letter-spacing:1px; text-transform:uppercase; }
-  .threshold-bar { position:relative; height:32px; background:var(--bg3); border-radius:12px; overflow:hidden; margin-bottom:8px; }
-  .threshold-fill { height:100%; border-radius:12px; transition:width 0.8s ease; display:flex; align-items:center; justify-content:flex-end; padding-right:8px; font-size:0.7rem; font-weight:700; color:white; min-width:28px; }
-  .threshold-marker { position:absolute; top:0; bottom:0; width:2px; background:white; opacity:0.7; z-index:2; }
-  .threshold-marker-label { position:absolute; top:-16px; font-size:0.55rem; color:var(--text2); transform:translateX(-50%); white-space:nowrap; }
-  .threshold-label { display:flex; justify-content:space-between; font-size:0.68rem; color:var(--text2); margin-bottom:14px; }
-  .prob-gauge { display:flex; gap:12px; margin-top:12px; }
-  .prob-card { flex:1; background:var(--bg3); border-radius:12px; padding:14px; text-align:center; }
-  .prob-card .prob-title { font-size:0.65rem; color:var(--text2); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px; }
-  .prob-pct { font-size:1.6rem; font-weight:800; }
-  .prob-card .prob-detail { font-size:0.6rem; color:var(--text2); margin-top:4px; }
-  .proj-party-row { display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid var(--border); }
-  .proj-party-row:last-child { border-bottom:none; }
-  .proj-party-symbol { width:24px; height:24px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:0.8rem; }
-  .proj-party-name { flex:1; font-size:0.75rem; font-weight:600; }
-  .proj-party-seats { font-size:0.85rem; font-weight:700; min-width:40px; text-align:right; }
-  .proj-party-bar { flex:2; height:8px; background:var(--bg3); border-radius:4px; overflow:hidden; }
-  .proj-party-bar-fill { height:100%; border-radius:4px; transition:width 0.6s ease; }
+  /* EJ Designs Projection — Hemicycle Parliament */
+  .projection-panel { background:var(--bg2); border:1px solid var(--border); border-radius:20px; padding:24px 20px 18px; margin-bottom:20px; }
+  .projection-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; }
+  .projection-header h3 { font-size:1rem; font-weight:800; margin:0; letter-spacing:-0.01em; }
+  .projection-brand { font-size:0.55rem; color:var(--text2); letter-spacing:1.5px; text-transform:uppercase; }
+  .proj-sub { font-size:0.72rem; color:var(--text2); margin-bottom:14px; }
+  .proj-sub span { font-weight:600; }
+  .hemicycle-wrap { position:relative; width:100%; aspect-ratio:2/1.1; margin:0 auto 8px; }
+  .hemicycle-wrap canvas { width:100%; height:100%; }
+  .hemi-center { position:absolute; bottom:0; left:50%; transform:translateX(-50%); text-align:center; pointer-events:none; }
+  .hemi-center .big-num { font-size:2.2rem; font-weight:900; letter-spacing:-0.03em; background:linear-gradient(135deg,#fff,#aaa); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .hemi-center .hc-sub { font-size:0.55rem; color:var(--text2); text-transform:uppercase; letter-spacing:0.08em; }
+  .hemi-tooltip { position:absolute; background:rgba(0,0,0,0.88); border:1px solid rgba(255,255,255,0.15); border-radius:8px; padding:8px 12px; font-size:0.72rem; color:#fff; pointer-events:none; white-space:nowrap; z-index:10; display:none; box-shadow:0 4px 12px rgba(0,0,0,0.4); }
+  .hemi-sections { display:flex; justify-content:space-between; padding:0 10px; margin-bottom:12px; }
+  .hemi-sec { display:flex; flex-direction:column; align-items:center; gap:1px; }
+  .hemi-sec .hs-num { font-size:1.4rem; font-weight:900; }
+  .hemi-sec .hs-label { font-size:0.58rem; color:var(--text2); text-transform:uppercase; letter-spacing:0.04em; }
+  .hemi-sec .hs-pct { font-size:0.55rem; color:var(--text2); }
+  .prob-gauge { display:flex; gap:10px; margin-bottom:14px; }
+  .prob-card { flex:1; background:var(--bg3); border-radius:12px; padding:12px; text-align:center; }
+  .prob-card .prob-title { font-size:0.6rem; color:var(--text2); margin-bottom:4px; text-transform:uppercase; letter-spacing:0.5px; }
+  .prob-pct { font-size:1.5rem; font-weight:800; }
+  .prob-card .prob-detail { font-size:0.55rem; color:var(--text2); margin-top:3px; }
+  .hemi-legend { display:flex; flex-wrap:wrap; gap:5px 12px; justify-content:center; }
+  .hemi-legend-item { display:flex; align-items:center; gap:4px; font-size:0.65rem; color:var(--text2); }
+  .hemi-legend-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+  .hemi-legend-item .hl-count { font-weight:700; color:var(--text); }
+  @media(max-width:768px) { .hemicycle-wrap { aspect-ratio:2/1.2; } .hemi-center .big-num { font-size:1.6rem; } }
 
   .tab-bar { display:flex; gap:4px; margin-bottom:14px; flex-wrap:wrap; }
   .tab-btn { padding:7px 14px; border:1px solid var(--border); background:transparent; color:var(--text2); border-radius:8px; cursor:pointer; font-size:0.75rem; font-weight:500; font-family:inherit; transition:all 0.2s; }
@@ -321,9 +327,38 @@
     <div class="section-title animate-in"><span>🗺️</span> Province-wise Breakdown</div>
     <div class="provinces-grid" id="provincesGrid"></div>
 
-    <!-- EJ Designs Projection Panel -->
-    <div class="section-title animate-in"><span>📊</span> EJ Designs Projection</div>
-    <div class="projection-panel animate-in" id="projectionPanel"></div>
+    <!-- EJ Designs Projection — Hemicycle Parliament -->
+    <div class="section-title animate-in"><span>📊</span> Projected Parliament Composition</div>
+    <div class="projection-panel animate-in" id="projectionPanel">
+      <div class="projection-header">
+        <h3>📊 Projected Parliament Composition</h3>
+        <div class="projection-brand">EJ Designs Projection</div>
+      </div>
+      <div class="proj-sub" id="projSubtext"></div>
+      <div class="hemicycle-wrap" id="hemiWrap">
+        <canvas id="hemiCanvas"></canvas>
+        <div class="hemi-center">
+          <div class="big-num">275</div>
+          <div class="hc-sub">Total Seats</div>
+        </div>
+        <div class="hemi-tooltip" id="hemiTooltip"></div>
+      </div>
+      <div class="hemi-sections">
+        <div class="hemi-sec">
+          <div class="hs-num">165</div>
+          <div class="hs-label">🗳️ FPTP Seats</div>
+          <div class="hs-pct">60% · Local Representative</div>
+        </div>
+        <div class="hemi-sec">
+          <div class="hs-num">110</div>
+          <div class="hs-label">📋 PR Seats</div>
+          <div class="hs-pct">40% · Party List</div>
+        </div>
+      </div>
+      <div class="prob-gauge" id="probGauge"></div>
+      <div class="hemi-legend" id="hemiLegend"></div>
+      <div id="projDisclaimer" style="margin-top:10px;font-size:0.55rem;color:var(--text2);text-align:center;font-style:italic"></div>
+    </div>
   </div>
 
   <!-- Constituency Results — always visible, appears right below search when active -->
@@ -1281,154 +1316,255 @@ function renderProvinces() {
 }
 
 // ═══════════════════════════════════════════════════
-// EJ DESIGNS PROJECTION — CNN/AP-style seat projections
+// EJ DESIGNS PROJECTION — Hemicycle Parliament Visualization
 // ═══════════════════════════════════════════════════
+let _hemiSeats = [];  // cached for hover detection
+
 function renderProjection() {
-  const panel = document.getElementById('projectionPanel');
-  const TOTAL_FPTP = 165;
-  const TOTAL_PR = 110;
-  const TOTAL_SEATS = 275;
-  const MAJORITY = 138;
-  const TWO_THIRDS = 184;
+  const TOTAL_FPTP = 165, TOTAL_PR = 110, TOTAL_SEATS = 275, MAJORITY = 138, TWO_THIRDS = 184;
 
-  // Gather current data from PARTIES
+  // Gather current data
   const partyData = Object.entries(PARTIES)
-    .map(([key, p]) => {
-      const won = p.won || 0;
-      const leading = p.leading || 0;
-      const knownPR = p.prSeats || 0;
-      return { key, ...p, won, leading, total: won + leading, knownPR };
-    })
+    .map(([key, p]) => ({key, ...p, won: p.won||0, leading: p.leading||0, total: (p.won||0)+(p.leading||0), knownPR: p.prSeats||0}))
     .filter(p => p.total > 0 || p.knownPR > 0)
-    .sort((a, b) => (b.total + b.knownPR) - (a.total + a.knownPR));
+    .sort((a,b) => (b.total+b.knownPR) - (a.total+a.knownPR));
 
-  const totalWon = partyData.reduce((s, p) => s + p.won, 0);
-  const totalResults = partyData.reduce((s, p) => s + p.total, 0);
+  const totalWon = partyData.reduce((s,p) => s+p.won, 0);
+  const totalResults = partyData.reduce((s,p) => s+p.total, 0);
   const remainingFPTP = Math.max(0, TOTAL_FPTP - totalResults);
-  const totalKnownPR = partyData.reduce((s, p) => s + p.knownPR, 0);
+  const totalKnownPR = partyData.reduce((s,p) => s+p.knownPR, 0);
 
-  const leader = partyData[0];
-  if (!leader) { panel.innerHTML = '<p style="color:var(--text2);text-align:center;padding:20px">Waiting for data...</p>'; return; }
+  if (!partyData.length) return;
 
-  // CNN/AP-style projection:
-  // 1. FPTP: current leads hold + remaining seats distributed proportionally
-  // 2. PR: if we have known PR data and it covers most seats, use it with HWM.
-  //    Otherwise, project all 110 PR seats proportionally based on FPTP share.
-  //    Nepal's PR allocation roughly follows party vote share which correlates with FPTP share.
+  // Project FPTP + PR for each party
   const projections = partyData.map(p => {
-    // FPTP projection: declared wins + current leads hold
-    const projectedDirect = p.total;
-    const extraFPTP = totalResults > 0 ? Math.round(remainingFPTP * (p.total / totalResults)) : 0;
-    const projectedFPTP = projectedDirect + extraFPTP;
-
-    // PR projection: use known PR if data covers most seats, else project proportionally
+    const projectedFPTP = p.total + (totalResults > 0 ? Math.round(remainingFPTP * (p.total / totalResults)) : 0);
     let projectedPR;
     if (totalKnownPR >= 60) {
-      // We have substantial PR data from NepseBajar — use it (already HWM'd)
-      const remainingPR = Math.max(0, TOTAL_PR - totalKnownPR);
-      projectedPR = p.knownPR + (totalKnownPR > 0 ? Math.round(remainingPR * (p.knownPR / totalKnownPR)) : 0);
+      const remPR = Math.max(0, TOTAL_PR - totalKnownPR);
+      projectedPR = p.knownPR + (totalKnownPR > 0 ? Math.round(remPR * (p.knownPR / totalKnownPR)) : 0);
     } else {
-      // No reliable PR data — project all 110 proportionally from FPTP share
       projectedPR = totalResults > 0 ? Math.round(TOTAL_PR * (p.total / totalResults)) : 0;
     }
-
-    const projectedTotal = projectedFPTP + projectedPR;
-    return { ...p, projectedFPTP, projectedPR, projectedTotal, extraFPTP, knownPR: p.knownPR };
+    return {...p, projectedFPTP, projectedPR, projectedTotal: projectedFPTP + projectedPR};
   });
+  projections.sort((a,b) => b.projectedTotal - a.projectedTotal);
 
-  // Sort by projected total for display
-  projections.sort((a, b) => b.projectedTotal - a.projectedTotal);
+  // Fix rounding: ensure FPTP sums to 165 and PR sums to 110
+  let fptpSum = projections.reduce((s,p) => s+p.projectedFPTP, 0);
+  if (fptpSum !== TOTAL_FPTP && projections.length) projections[0].projectedFPTP += (TOTAL_FPTP - fptpSum);
+  let prSum = projections.reduce((s,p) => s+p.projectedPR, 0);
+  if (prSum !== TOTAL_PR && projections.length) projections[0].projectedPR += (TOTAL_PR - prSum);
+  projections.forEach(p => { p.projectedTotal = p.projectedFPTP + p.projectedPR; });
 
   const leaderProj = projections[0];
   const leaderTotal = leaderProj.projectedTotal;
-
-  // Probability: based on how far the projected total is from thresholds
-  const leaderP = getParty(leader.key);
-  const majProb = leaderTotal >= MAJORITY ? Math.min(99, 70 + (leaderTotal - MAJORITY) * 1.5)
-    : Math.max(1, 50 - (MAJORITY - leaderTotal) * 3);
-  const twoThirdProb = leaderTotal >= TWO_THIRDS ? Math.min(99, 60 + (leaderTotal - TWO_THIRDS) * 2)
-    : Math.max(1, 40 - (TWO_THIRDS - leaderTotal) * 2.5);
-
-  const fillPct = Math.min(100, leaderTotal / TOTAL_SEATS * 100);
-  const majMarker = MAJORITY / TOTAL_SEATS * 100;
-  const ttMarker = TWO_THIRDS / TOTAL_SEATS * 100;
-
-  // PR method label
+  const leaderP = getParty(leaderProj.key);
   const prMethod = totalKnownPR >= 60 ? 'PR from source data' : 'PR projected from FPTP share';
 
-  // Party breakdown rows — show FPTP + PR clearly separated
-  const partyRows = projections.slice(0, 6).map(p => {
-    const pp = getParty(p.key);
-    const barPct = Math.max(2, p.projectedTotal / TOTAL_SEATS * 100);
-    // Build detail: "32 won · 84 leading · +3 FPTP proj · 22 PR = 141"
-    let detail = `${p.won} won · ${p.leading} leading`;
-    if (p.extraFPTP > 0) detail += ` · +${p.extraFPTP} FPTP proj`;
-    detail += ` · ${p.projectedPR} PR`;
-    return `<div class="proj-party-row">
-      <div class="proj-party-symbol" style="background:${pp.color}22">${pp.symbol}</div>
-      <div class="proj-party-name" style="color:${pp.color}">${pp.short}</div>
-      <div class="proj-party-bar"><div class="proj-party-bar-fill" style="width:${barPct}%;background:${pp.color}"></div></div>
-      <div class="proj-party-seats" style="color:${pp.color}">${p.projectedTotal}</div>
-    </div>
-    <div style="font-size:0.58rem;color:var(--text2);margin:-4px 0 6px 52px">${detail}</div>`;
-  }).join('');
+  // Probability gauges
+  const majProb = leaderTotal >= MAJORITY ? Math.min(99, 70 + (leaderTotal-MAJORITY)*1.5) : Math.max(1, 50 - (MAJORITY-leaderTotal)*3);
+  const ttProb = leaderTotal >= TWO_THIRDS ? Math.min(99, 60 + (leaderTotal-TWO_THIRDS)*2) : Math.max(1, 40 - (TWO_THIRDS-leaderTotal)*2.5);
 
-  panel.innerHTML = `
-    <div class="projection-header">
-      <h3>📊 Seat Projection (FPTP + PR)</h3>
-      <div class="projection-brand">EJ DESIGNS PROJECTION</div>
-    </div>
+  // Update text elements
+  document.getElementById('projSubtext').innerHTML =
+    `FPTP: <span style="color:var(--green)">${totalWon} declared</span> · ${totalResults-totalWon} leading · ${remainingFPTP} remaining` +
+    ` &nbsp;|&nbsp; PR: ${totalKnownPR > 0 ? totalKnownPR+' allocated' : 'projected'} of ${TOTAL_PR}` +
+    ` &nbsp;|&nbsp; <span style="color:${leaderP.color};font-weight:700">${leaderP.symbol} ${leaderProj.short}: ${leaderTotal} projected</span>`;
 
-    <div style="font-size:0.72rem;color:var(--text2);margin-bottom:12px">
-      FPTP: <span style="color:var(--green)">${totalWon} declared</span> · ${totalResults - totalWon} leading · ${remainingFPTP} remaining
-      &nbsp;|&nbsp; PR: ${totalKnownPR > 0 ? totalKnownPR + ' allocated' : 'projected'} of ${TOTAL_PR}
+  document.getElementById('probGauge').innerHTML = `
+    <div class="prob-card">
+      <div class="prob-title">Majority</div>
+      <div class="prob-pct" style="color:${majProb>=70?'var(--green)':majProb>=40?'#f59e0b':'var(--red)'}">${Math.round(majProb)}%</div>
+      <div class="prob-detail">Need ${MAJORITY} of ${TOTAL_SEATS}</div>
     </div>
+    <div class="prob-card">
+      <div class="prob-title">⅔ Majority</div>
+      <div class="prob-pct" style="color:${ttProb>=70?'var(--green)':ttProb>=40?'#f59e0b':'var(--red)'}">${Math.round(ttProb)}%</div>
+      <div class="prob-detail">Need ${TWO_THIRDS} of ${TOTAL_SEATS}</div>
+    </div>`;
 
-    <!-- Leader progress bar with majority/2/3 markers -->
-    <div style="font-size:0.7rem;font-weight:600;margin-bottom:4px;color:${leaderP.color}">
-      ${leaderP.symbol} ${leader.name} — Projected: ${leaderTotal} of ${TOTAL_SEATS} seats
-    </div>
-    <div class="threshold-bar">
-      <div class="threshold-fill" style="width:${fillPct}%;background:linear-gradient(90deg, ${leaderP.color}, ${leaderP.color}cc)">
-        ${leaderTotal}
-      </div>
-      <div class="threshold-marker" style="left:${majMarker}%">
-        <div class="threshold-marker-label">Majority (${MAJORITY})</div>
-      </div>
-      <div class="threshold-marker" style="left:${ttMarker}%">
-        <div class="threshold-marker-label">⅔ (${TWO_THIRDS})</div>
-      </div>
-    </div>
-    <div class="threshold-label">
-      <span>0</span>
-      <span>${TOTAL_SEATS} seats</span>
-    </div>
+  // Legend
+  document.getElementById('hemiLegend').innerHTML = projections
+    .filter(p => p.projectedTotal > 0)
+    .map(p => {
+      const pp = getParty(p.key);
+      return `<div class="hemi-legend-item">
+        <div class="hemi-legend-dot" style="background:${pp.color}"></div>
+        ${pp.symbol} ${pp.short}: <span class="hl-count">${p.projectedTotal}</span>
+        <span style="opacity:0.5;font-size:0.55rem">(${p.projectedFPTP}F+${p.projectedPR}P)</span>
+      </div>`;
+    }).join('');
 
-    <!-- Probability gauges -->
-    <div class="prob-gauge">
-      <div class="prob-card">
-        <div class="prob-title">Majority</div>
-        <div class="prob-pct" style="color:${majProb >= 70 ? 'var(--green)' : majProb >= 40 ? '#f59e0b' : 'var(--red)'}">${Math.round(majProb)}%</div>
-        <div class="prob-detail">Need ${MAJORITY} of ${TOTAL_SEATS}</div>
-      </div>
-      <div class="prob-card">
-        <div class="prob-title">⅔ Majority</div>
-        <div class="prob-pct" style="color:${twoThirdProb >= 70 ? 'var(--green)' : twoThirdProb >= 40 ? '#f59e0b' : 'var(--red)'}">${Math.round(twoThirdProb)}%</div>
-        <div class="prob-detail">Need ${TWO_THIRDS} of ${TOTAL_SEATS}</div>
-      </div>
-    </div>
+  document.getElementById('projDisclaimer').textContent =
+    `FPTP: leads hold + remaining ${remainingFPTP} seats proportional. ${prMethod}. Not an official forecast.`;
 
-    <!-- Party seat projections -->
-    <div style="margin-top:16px;font-size:0.72rem;font-weight:600;color:var(--text2);margin-bottom:8px">
-      Projected Seat Distribution
-    </div>
-    ${partyRows}
+  // ═══ DRAW HEMICYCLE ═══
+  const canvas = document.getElementById('hemiCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const wrap = document.getElementById('hemiWrap');
+  const DPR = window.devicePixelRatio || 1;
+  const w = wrap.clientWidth;
+  const h = wrap.clientHeight;
+  canvas.width = w * DPR;
+  canvas.height = h * DPR;
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.clearRect(0, 0, w, h);
 
-    <div style="margin-top:12px;font-size:0.58rem;color:var(--text2);text-align:center;font-style:italic">
-      FPTP: leads hold + remaining ${remainingFPTP} seats proportional. ${prMethod}. Not an official forecast.
-    </div>
-  `;
+  const cx = w / 2, cy = h * 0.95;
+  const ROWS = 9;
+  const minR = h * 0.22, maxR = h * 0.92;
+  const gap = (maxR - minR) / ROWS;
+  const dotGap = gap * 0.12;
+
+  // Calculate rows
+  const rowInfo = [];
+  let totalSlots = 0;
+  for (let r = 0; r < ROWS; r++) {
+    const radius = minR + r * gap + gap / 2;
+    const arcLen = Math.PI * radius;
+    const dotSize = gap - dotGap;
+    const count = Math.floor(arcLen / (dotSize * 1.15));
+    rowInfo.push({radius, dotSize: (gap - dotGap) / 2 * 0.85, rawCount: count});
+    totalSlots += count;
+  }
+  // Scale to exactly 275
+  const scale = 275 / totalSlots;
+  totalSlots = 0;
+  rowInfo.forEach(r => { r.count = Math.round(r.rawCount * scale); totalSlots += r.count; });
+  rowInfo[rowInfo.length-1].count += (275 - totalSlots);
+
+  // Build FPTP color array (sorted by party size, largest party fills first = inner front rows)
+  const fptpColors = [];
+  projections.forEach(p => { for (let i = 0; i < p.projectedFPTP; i++) fptpColors.push({color: getParty(p.key).color, key: p.key}); });
+  while (fptpColors.length < TOTAL_FPTP) fptpColors.push({color:'#2a2d3e', key:'REM'});
+
+  // Build PR color array
+  const prColors = [];
+  projections.forEach(p => { for (let i = 0; i < p.projectedPR; i++) prColors.push({color: getParty(p.key).color, key: p.key}); });
+  while (prColors.length < TOTAL_PR) prColors.push({color:'#2a2d3e', key:'REM'});
+
+  // Place seats: each row splits 60/40 into FPTP (left) and PR (right)
+  _hemiSeats = [];
+  let fIdx = 0, pIdx = 0;
+  for (const row of rowInfo) {
+    const {count, radius, dotSize} = row;
+    const fptpInRow = Math.round(count * 165 / 275);
+    for (let i = 0; i < count; i++) {
+      const angle = Math.PI - (i / (count - 1)) * Math.PI;
+      const x = cx + radius * Math.cos(angle);
+      const y = cy - radius * Math.sin(angle);
+      let sColor, sKey, sType;
+      if (i < fptpInRow) {
+        const info = fptpColors[fIdx] || {color:'#2a2d3e', key:'REM'};
+        sColor = info.color; sKey = info.key; sType = 'FPTP'; fIdx++;
+      } else {
+        const info = prColors[pIdx] || {color:'#2a2d3e', key:'REM'};
+        sColor = info.color; sKey = info.key; sType = 'PR'; pIdx++;
+      }
+      _hemiSeats.push({x, y, r: dotSize, color: sColor, key: sKey, type: sType});
+    }
+  }
+
+  // Draw divider line
+  ctx.save();
+  ctx.setLineDash([3,4]);
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx, cy - maxR - 4); ctx.stroke();
+  ctx.restore();
+
+  // Draw section labels at top
+  ctx.save();
+  ctx.font = '600 10px Inter,sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.2)';
+  ctx.textAlign = 'center';
+  ctx.fillText('◀ FPTP', cx - 36, 12);
+  ctx.fillText('PR ▶', cx + 36, 12);
+  ctx.restore();
+
+  // Draw majority arc line
+  const majAngle = Math.PI * (1 - MAJORITY / TOTAL_SEATS);
+  ctx.save();
+  ctx.strokeStyle = 'rgba(245,197,66,0.3)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([2,3]);
+  ctx.beginPath();
+  ctx.moveTo(cx + (minR-6)*Math.cos(majAngle), cy - (minR-6)*Math.sin(majAngle));
+  ctx.lineTo(cx + (maxR+6)*Math.cos(majAngle), cy - (maxR+6)*Math.sin(majAngle));
+  ctx.stroke();
+  ctx.restore();
+  // Majority label
+  ctx.save();
+  ctx.font = '700 9px Inter,sans-serif';
+  ctx.fillStyle = 'rgba(245,197,66,0.6)';
+  ctx.textAlign = 'center';
+  const mlx = cx + (maxR+16)*Math.cos(majAngle);
+  const mly = cy - (maxR+16)*Math.sin(majAngle);
+  ctx.fillText('138', mlx, mly);
+  ctx.restore();
+
+  // Draw seats
+  for (const seat of _hemiSeats) {
+    ctx.beginPath();
+    ctx.arc(seat.x, seat.y, seat.r, 0, Math.PI * 2);
+    ctx.fillStyle = seat.color;
+    ctx.fill();
+    if (seat.key !== 'REM') {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(seat.x, seat.y, seat.r, Math.PI, 0);
+      ctx.fillStyle = 'rgba(255,255,255,0.1)';
+      ctx.fill();
+      ctx.restore();
+    }
+  }
 }
+
+// Hemicycle tooltip
+(function() {
+  let hemiListenerAttached = false;
+  const observer = new MutationObserver(() => {
+    const canvas = document.getElementById('hemiCanvas');
+    if (canvas && !hemiListenerAttached) {
+      hemiListenerAttached = true;
+      const tooltip = document.getElementById('hemiTooltip');
+      canvas.addEventListener('mousemove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+        let found = null;
+        for (const s of _hemiSeats) {
+          if ((mx-s.x)**2 + (my-s.y)**2 <= (s.r+2)**2) { found = s; break; }
+        }
+        if (found && found.key !== 'REM') {
+          const p = PARTIES[found.key];
+          if (p) {
+            tooltip.innerHTML = `<strong style="color:${p.color}">${p.symbol} ${p.name}</strong><br>${found.type} Seat`;
+            tooltip.style.display = 'block';
+            const wrap = document.getElementById('hemiWrap');
+            const wr = wrap.getBoundingClientRect();
+            tooltip.style.left = (e.clientX - wr.left + 12) + 'px';
+            tooltip.style.top = (e.clientY - wr.top - 40) + 'px';
+          }
+          canvas.style.cursor = 'pointer';
+        } else {
+          tooltip.style.display = 'none';
+          canvas.style.cursor = 'default';
+        }
+      });
+      canvas.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+      observer.disconnect();
+    }
+  });
+  observer.observe(document.body, {childList:true, subtree:true});
+})();
+
+// Re-render hemicycle on resize
+window.addEventListener('resize', () => { if (document.getElementById('hemiCanvas')) renderProjection(); });
 
 let activeTab = 'none';
 
