@@ -1591,7 +1591,7 @@ function applyLiveData(apiData) {
   const MAX_SEATS = 165;     // Max FPTP seats any party can win/lead
   const MAX_VOTES = 200000;  // Max votes per candidate in any constituency
 
-  // Update party tallies — only accept HIGHER numbers within sane limits
+  // Update party tallies — API is authoritative, directly set values
   if (apiData.data.parties && Object.keys(apiData.data.parties).length > 0) {
     for (const [key, vals] of Object.entries(apiData.data.parties)) {
       if (PARTIES[key]) {
@@ -1602,13 +1602,9 @@ function applyLiveData(apiData) {
           console.warn(`[Data] REJECTED bad party data for ${key}: won=${newWon}, leading=${newLeading}`);
           continue;
         }
-        const newTotal = newWon + newLeading;
-        const oldTotal = PARTIES[key].won + PARTIES[key].leading;
-        if (newTotal >= oldTotal) {
-          PARTIES[key].won = Math.max(PARTIES[key].won, newWon);
-          PARTIES[key].leading = newLeading;
-          applied = true;
-        }
+        PARTIES[key].won = newWon;
+        PARTIES[key].leading = newLeading;
+        applied = true;
       }
     }
   }
@@ -1702,7 +1698,7 @@ function cacheDataToStorage() {
     for (const [k, p] of Object.entries(PARTIES)) {
       snapshot.parties[k] = { won: p.won, leading: p.leading };
     }
-    localStorage.setItem('nepal_election_2082_cache', JSON.stringify(snapshot));
+    localStorage.setItem('nepal_election_2082_v2', JSON.stringify(snapshot));
     console.log('[Cache] Saved live data to localStorage');
   } catch (e) { console.warn('[Cache] Could not save:', e.message); }
 }
@@ -1710,7 +1706,7 @@ function cacheDataToStorage() {
 // Load cached data from localStorage on boot (replaces hardcoded defaults)
 function loadCachedData() {
   try {
-    const raw = localStorage.getItem('nepal_election_2082_cache');
+    const raw = localStorage.getItem('nepal_election_2082_v2');
     if (!raw) return false;
     const cache = JSON.parse(raw);
     const cacheAge = Date.now() - new Date(cache.timestamp).getTime();
@@ -1730,7 +1726,7 @@ function loadCachedData() {
       }
       if (cacheCorrupted) {
         console.warn('[Cache] Corrupted data detected, clearing cache');
-        localStorage.removeItem('nepal_election_2082_cache');
+        localStorage.removeItem('nepal_election_2082_v2');
         return false;
       }
       for (const [k, v] of Object.entries(cache.parties)) {
