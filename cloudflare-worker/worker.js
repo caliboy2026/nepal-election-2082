@@ -660,6 +660,10 @@ export default {
           })).catch(() => {});
         }
       }
+      // Always persist party HWM to KV after each request (non-blocking)
+      if (env.ELECTION_CACHE && Object.keys(partyHWM).length > 0) {
+        env.ELECTION_CACHE.put(KV_PARTY_HWM_KEY, JSON.stringify(partyHWM)).catch(() => {});
+      }
 
       return jsonResponse(buildResponse(quick, deepResult, startTime));
     } catch (err) {

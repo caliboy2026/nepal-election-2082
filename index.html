@@ -68,27 +68,52 @@
   .section-title { font-size:0.95rem; font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
   .party-tally { background:var(--bg2); border:1px solid var(--border); border-radius:16px; padding:18px; margin-bottom:22px; overflow-x:auto; }
 
-  .seat-bar { display:flex; height:38px; border-radius:8px; overflow:hidden; background:var(--bg3); position:relative; }
-  .seat-segment { height:100%; display:flex; align-items:center; justify-content:center; font-size:0.68rem; font-weight:700; color:#fff; transition:width 1s ease; min-width:0; overflow:hidden; }
-  .majority-line { position:absolute; left:calc(138/275*100%); top:-4px; bottom:-4px; width:2px; background:var(--gold); z-index:5; }
-  .majority-label { position:absolute; left:calc(138/275*100%); top:-20px; transform:translateX(-50%); font-size:0.62rem; color:var(--gold); font-weight:600; white-space:nowrap; }
+  /* ═══ SEAT BAR — Modern Design ═══ */
+  .seat-bar { display:flex; height:48px; border-radius:12px; overflow:hidden; background:var(--bg3); position:relative; box-shadow:inset 0 2px 4px rgba(0,0,0,0.3); }
+  .seat-segment { height:100%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:800; color:#fff; transition:width 1.5s cubic-bezier(0.4,0,0.2,1); min-width:0; overflow:hidden; position:relative; }
+  .seat-segment::after { content:''; position:absolute; top:0; left:0; right:0; height:50%; background:linear-gradient(180deg,rgba(255,255,255,0.15) 0%,rgba(255,255,255,0) 100%); pointer-events:none; }
+  .seat-segment .seg-label { display:flex; flex-direction:column; align-items:center; line-height:1.1; z-index:1; }
+  .seat-segment .seg-count { font-size:1rem; font-weight:900; }
+  .seat-segment .seg-name { font-size:0.5rem; opacity:0.8; text-transform:uppercase; letter-spacing:0.05em; }
+  .majority-marker { position:absolute; left:calc(138/275*100%); top:-8px; bottom:-8px; z-index:10; display:flex; flex-direction:column; align-items:center; }
+  .majority-marker .marker-label { font-size:0.58rem; color:var(--gold); font-weight:700; white-space:nowrap; background:var(--bg); padding:2px 6px; border-radius:4px; border:1px solid rgba(245,197,66,0.3); margin-bottom:4px; }
+  .majority-marker .marker-line { width:2px; flex:1; background:var(--gold); box-shadow:0 0 8px rgba(245,197,66,0.6); }
+  .majority-marker .marker-diamond { width:8px; height:8px; background:var(--gold); transform:rotate(45deg); box-shadow:0 0 6px rgba(245,197,66,0.5); margin-top:-1px; }
 
-  .party-table { width:100%; border-collapse:collapse; }
-  .party-table th { text-align:left; font-size:0.65rem; text-transform:uppercase; color:var(--text2); letter-spacing:0.05em; padding:8px 10px; border-bottom:1px solid var(--border); }
-  .party-table th:not(:first-child) { text-align:center; }
-  .party-table td { padding:9px 10px; border-bottom:1px solid rgba(255,255,255,0.04); font-size:0.82rem; vertical-align:middle; }
-  .party-table td:not(:first-child) { text-align:center; }
-  .party-table tr:hover { background:rgba(255,255,255,0.02); }
-  .party-table tr.highlight { background:rgba(220,20,60,0.08); }
+  /* ═══ PARTY ROWS — Card Design ═══ */
+  .party-rows { display:flex; flex-direction:column; gap:6px; }
+  .party-row { display:grid; grid-template-columns:48px 1fr auto auto auto auto; align-items:center; gap:10px; padding:10px 14px; background:var(--bg2); border:1px solid var(--border); border-radius:12px; transition:all 0.25s ease; cursor:default; }
+  .party-row:hover { background:rgba(255,255,255,0.03); border-color:rgba(255,255,255,0.12); transform:translateY(-1px); box-shadow:0 4px 12px rgba(0,0,0,0.2); }
+  .party-row.highlight { border-color:var(--accent); background:rgba(220,20,60,0.06); }
+  .party-icon { width:42px; height:42px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:1.3rem; }
+  .party-details { display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .party-name-new { font-weight:700; font-size:0.85rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .party-sub { font-size:0.62rem; color:var(--text2); }
+  .party-mini-bar { width:100%; height:3px; background:var(--bg3); border-radius:2px; margin-top:4px; overflow:hidden; }
+  .party-mini-bar .fill-won { height:100%; float:left; border-radius:2px 0 0 2px; transition:width 1s ease; }
+  .party-mini-bar .fill-leading { height:100%; float:left; opacity:0.4; transition:width 1s ease; }
+  .stat-pill { display:flex; flex-direction:column; align-items:center; padding:4px 10px; border-radius:8px; min-width:48px; cursor:pointer; transition:all 0.2s; }
+  .stat-pill:hover { transform:scale(1.08); }
+  .stat-pill .stat-val { font-size:0.95rem; font-weight:800; }
+  .stat-pill .stat-label { font-size:0.5rem; text-transform:uppercase; letter-spacing:0.05em; opacity:0.7; }
+  .stat-won { background:rgba(34,197,94,0.12); color:var(--green); }
+  .stat-won:hover { background:rgba(34,197,94,0.25); }
+  .stat-leading { background:rgba(59,130,246,0.12); color:var(--blue); }
+  .stat-leading:hover { background:rgba(59,130,246,0.25); }
+  .stat-total { background:rgba(255,255,255,0.05); }
+  .stat-total .stat-val { font-size:1.1rem; }
+  .change-chip { font-size:0.68rem; font-weight:700; padding:2px 8px; border-radius:6px; white-space:nowrap; }
+  .change-chip.up { background:rgba(34,197,94,0.1); color:var(--green); }
+  .change-chip.down { background:rgba(239,68,68,0.1); color:var(--red); }
+  .change-chip.same { background:rgba(255,255,255,0.03); color:var(--text2); }
 
-  .party-info { display:flex; align-items:center; gap:10px; }
-  .party-symbol { width:34px; height:34px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:1rem; flex-shrink:0; border:1px solid rgba(255,255,255,0.1); }
-  .party-name-cell .pname { font-weight:600; font-size:0.82rem; }
-  .party-name-cell .pshort { font-size:0.65rem; color:var(--text2); }
+  /* Keep old badge classes for popup compatibility */
   .won-badge { background:rgba(34,197,94,0.15); color:var(--green); padding:2px 8px; border-radius:12px; font-weight:700; font-size:0.82rem; cursor:pointer; transition:background 0.2s; }
   .won-badge:hover { background:rgba(34,197,94,0.35); }
   .leading-badge { background:rgba(59,130,246,0.15); color:var(--blue); padding:2px 8px; border-radius:12px; font-weight:700; font-size:0.82rem; cursor:pointer; transition:background 0.2s; }
   .leading-badge:hover { background:rgba(59,130,246,0.35); }
+
+  @media(max-width:768px) { .party-row { grid-template-columns:40px 1fr auto auto auto; gap:6px; padding:8px 10px; } .stat-total { display:none; } }
   .badge-popup { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:var(--bg2); border:1px solid var(--border); border-radius:16px; padding:24px; z-index:1000; max-width:500px; width:90%; max-height:70vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,0.5); }
   .badge-popup h3 { margin:0 0 16px 0; font-size:1rem; }
   .badge-popup .popup-close { position:absolute; top:12px; right:16px; background:none; border:none; color:var(--text2); font-size:1.2rem; cursor:pointer; }
@@ -278,18 +303,18 @@
       <div class="summary-card"><div class="label">Reporting</div><div class="value" id="reportingCount" style="color:var(--blue)">0</div><div class="sub">of 165 constituencies</div></div>
     </div>
 
-    <!-- Seat Visualization Bar -->
+    <!-- Seat Visualization Bar — Modern Design -->
     <div class="party-tally animate-in">
       <div class="section-title"><span>📊</span> FPTP Seat Tally — Won + Leading</div>
-      <div style="position:relative;padding-top:22px;margin-bottom:18px;">
-        <div class="majority-label">▼ Majority: 138</div>
+      <div style="position:relative;padding-top:28px;margin-bottom:20px;">
         <div class="seat-bar" id="seatBar"></div>
-        <div class="majority-line"></div>
+        <div class="majority-marker">
+          <div class="marker-label">138 Majority</div>
+          <div class="marker-line"></div>
+          <div class="marker-diamond"></div>
+        </div>
       </div>
-      <table class="party-table">
-        <thead><tr><th>Party</th><th>Won</th><th>Leading</th><th>Total</th><th>2022</th><th>+/-</th></tr></thead>
-        <tbody id="partyTableBody"></tbody>
-      </table>
+      <div class="party-rows" id="partyTableBody"></div>
     </div>
 
     <!-- Province Results -->
@@ -1149,11 +1174,18 @@ function renderSeatBar() {
     .filter(p=>p.total>0)
     .sort((a,b)=>b.total-a.total);
   const total = entries.reduce((s,p)=>s+p.total,0);
-  const remaining = 165-total;
+  const remaining = Math.max(0, 165-total);
+
   bar.innerHTML = entries.map(p => {
     const pct = p.total/275*100;
-    return `<div class="seat-segment" style="width:${pct}%;background:${p.color}" title="${p.short}: ${p.total}">${p.total>3?p.total:''}</div>`;
-  }).join('') + (remaining>0?`<div class="seat-segment" style="width:${remaining/275*100}%;background:var(--bg3);color:var(--text2)" title="Counting: ${remaining}">${remaining>5?remaining:''}</div>`:'');
+    // Show label with count + short name for segments wide enough
+    const label = p.total > 8
+      ? `<div class="seg-label"><span class="seg-count">${p.total}</span><span class="seg-name">${p.short}</span></div>`
+      : (p.total > 3 ? `<span style="z-index:1">${p.total}</span>` : '');
+    return `<div class="seat-segment" style="width:${pct}%;background:${p.color}" title="${p.short}: ${p.won} won + ${p.leading} leading = ${p.total}">${label}</div>`;
+  }).join('') + (remaining > 0
+    ? `<div class="seat-segment" style="width:${remaining/275*100}%;background:var(--bg3);color:var(--text2)" title="Remaining: ${remaining}">${remaining > 5 ? remaining : ''}</div>`
+    : '');
 }
 
 function renderPartyTable() {
@@ -1162,25 +1194,40 @@ function renderPartyTable() {
     .map(([k,v])=>({key:k,...v,total:v.won+v.leading}))
     .sort((a,b)=>b.total-a.total);
   let declared = 0;
+
   body.innerHTML = sorted.map(p => {
     declared += p.won;
     const change = p.total - p.seats2022;
-    const changeStr = change>0?`<span class="change-up">▲ ${change}</span>`:change<0?`<span class="change-down">▼ ${Math.abs(change)}</span>`:`<span style="color:var(--text2)">—</span>`;
-    const hl = partyFilter===p.key ? ' highlight' : '';
-    return `<tr class="${hl}">
-      <td><div class="party-info">
-        <div class="party-symbol" style="background:${p.color}22;border-color:${p.color}">${p.symbol}</div>
-        <div class="party-name-cell">
-          <div class="pname">${p.name}</div>
-          <div class="pshort">${p.short} · ${p.symbolName} · ${p.nepali}</div>
+    const changeStr = change > 0
+      ? `<span class="change-chip up">+${change}</span>`
+      : change < 0
+        ? `<span class="change-chip down">${change}</span>`
+        : `<span class="change-chip same">—</span>`;
+    const hl = partyFilter === p.key ? ' highlight' : '';
+    const barWonPct = p.total > 0 ? (p.won / 165 * 100) : 0;
+    const barLeadPct = p.total > 0 ? (p.leading / 165 * 100) : 0;
+
+    return `<div class="party-row${hl}">
+      <div class="party-icon" style="background:${p.color}15;--party-color:${p.color}">${p.symbol}</div>
+      <div class="party-details">
+        <div class="party-name-new" style="color:${p.color}">${p.name}</div>
+        <div class="party-sub">${p.short} · ${p.symbolName} · ${p.nepali}</div>
+        <div class="party-mini-bar">
+          <div class="fill-won" style="width:${barWonPct}%;background:${p.color}"></div>
+          <div class="fill-leading" style="width:${barLeadPct}%;background:${p.color}"></div>
         </div>
-      </div></td>
-      <td><span class="won-badge" onclick="showPartyDetail('${p.key}','won')" title="Click to see winners">${p.won}</span></td>
-      <td><span class="leading-badge" onclick="showPartyDetail('${p.key}','leading')" title="Click to see leading candidates">${p.leading}</span></td>
-      <td><span class="total-badge" style="color:${p.color}">${p.total}</span></td>
-      <td style="color:var(--text2)">${p.seats2022}</td>
-      <td>${changeStr}</td>
-    </tr>`;
+      </div>
+      <div class="stat-pill stat-won" onclick="showPartyDetail('${p.key}','won')" title="Click to see winners">
+        <span class="stat-val">${p.won}</span><span class="stat-label">Won</span>
+      </div>
+      <div class="stat-pill stat-leading" onclick="showPartyDetail('${p.key}','leading')" title="Click to see leading">
+        <span class="stat-val">${p.leading}</span><span class="stat-label">Leading</span>
+      </div>
+      <div class="stat-pill stat-total">
+        <span class="stat-val" style="color:${p.color}">${p.total}</span><span class="stat-label">Total</span>
+      </div>
+      ${changeStr}
+    </div>`;
   }).join('');
   document.getElementById('declaredCount').textContent = declared;
 }
@@ -1202,9 +1249,9 @@ function updateProvinceResults() {
       prov.results[leader.party] = (prov.results[leader.party] || 0) + 1;
     }
   }
-  // Update reporting count in summary strip
+  // Update reporting count in summary strip (cap at 165 — dedupes can inflate)
   const el = document.getElementById('reportingCount');
-  if (el) el.textContent = reporting;
+  if (el) el.textContent = Math.min(reporting, 165);
 }
 
 function renderProvinces() {
@@ -1234,7 +1281,7 @@ function renderProvinces() {
 }
 
 // ═══════════════════════════════════════════════════
-// EJ DESIGNS PROJECTION — AI-powered seat projections
+// EJ DESIGNS PROJECTION — CNN/AP-style seat projections
 // ═══════════════════════════════════════════════════
 function renderProjection() {
   const panel = document.getElementById('projectionPanel');
@@ -1249,30 +1296,48 @@ function renderProjection() {
     .map(([key, p]) => {
       const won = p.won || 0;
       const leading = p.leading || 0;
-      const prSeats = p.prSeats || 0;
-      return { key, ...p, won, leading, total: won + leading, prSeats };
+      const knownPR = p.prSeats || 0;
+      return { key, ...p, won, leading, total: won + leading, knownPR };
     })
-    .filter(p => p.total > 0 || p.prSeats > 0)
-    .sort((a, b) => (b.total + b.prSeats) - (a.total + a.prSeats));
+    .filter(p => p.total > 0 || p.knownPR > 0)
+    .sort((a, b) => (b.total + b.knownPR) - (a.total + a.knownPR));
 
   const totalWon = partyData.reduce((s, p) => s + p.won, 0);
   const totalResults = partyData.reduce((s, p) => s + p.total, 0);
   const remainingFPTP = Math.max(0, TOTAL_FPTP - totalResults);
+  const totalKnownPR = partyData.reduce((s, p) => s + p.knownPR, 0);
 
   const leader = partyData[0];
   if (!leader) { panel.innerHTML = '<p style="color:var(--text2);text-align:center;padding:20px">Waiting for data...</p>'; return; }
 
-  // CNN/AP-style projection: current leads hold + remaining distributed proportionally
+  // CNN/AP-style projection:
+  // 1. FPTP: current leads hold + remaining seats distributed proportionally
+  // 2. PR: if we have known PR data and it covers most seats, use it with HWM.
+  //    Otherwise, project all 110 PR seats proportionally based on FPTP share.
+  //    Nepal's PR allocation roughly follows party vote share which correlates with FPTP share.
   const projections = partyData.map(p => {
-    // Won (declared) + Leading (current lead holds) = projected FPTP
-    const projectedDirect = p.total;  // leads hold as-is
-    // If there are uncounted seats, distribute proportionally based on current share
-    const extraProjected = totalResults > 0 ? Math.round(remainingFPTP * (p.total / totalResults)) : 0;
-    const projectedFPTP = projectedDirect + extraProjected;
-    const prSeats = p.prSeats;
-    const projectedTotal = projectedFPTP + prSeats;
-    return { ...p, projectedFPTP, prSeats, projectedTotal, extraProjected };
+    // FPTP projection: declared wins + current leads hold
+    const projectedDirect = p.total;
+    const extraFPTP = totalResults > 0 ? Math.round(remainingFPTP * (p.total / totalResults)) : 0;
+    const projectedFPTP = projectedDirect + extraFPTP;
+
+    // PR projection: use known PR if data covers most seats, else project proportionally
+    let projectedPR;
+    if (totalKnownPR >= 60) {
+      // We have substantial PR data from NepseBajar — use it (already HWM'd)
+      const remainingPR = Math.max(0, TOTAL_PR - totalKnownPR);
+      projectedPR = p.knownPR + (totalKnownPR > 0 ? Math.round(remainingPR * (p.knownPR / totalKnownPR)) : 0);
+    } else {
+      // No reliable PR data — project all 110 proportionally from FPTP share
+      projectedPR = totalResults > 0 ? Math.round(TOTAL_PR * (p.total / totalResults)) : 0;
+    }
+
+    const projectedTotal = projectedFPTP + projectedPR;
+    return { ...p, projectedFPTP, projectedPR, projectedTotal, extraFPTP, knownPR: p.knownPR };
   });
+
+  // Sort by projected total for display
+  projections.sort((a, b) => b.projectedTotal - a.projectedTotal);
 
   const leaderProj = projections[0];
   const leaderTotal = leaderProj.projectedTotal;
@@ -1288,11 +1353,17 @@ function renderProjection() {
   const majMarker = MAJORITY / TOTAL_SEATS * 100;
   const ttMarker = TWO_THIRDS / TOTAL_SEATS * 100;
 
-  // Party breakdown rows — show Won + Leading + Projected separately
+  // PR method label
+  const prMethod = totalKnownPR >= 60 ? 'PR from source data' : 'PR projected from FPTP share';
+
+  // Party breakdown rows — show FPTP + PR clearly separated
   const partyRows = projections.slice(0, 6).map(p => {
     const pp = getParty(p.key);
     const barPct = Math.max(2, p.projectedTotal / TOTAL_SEATS * 100);
-    const detail = `${p.won} won · ${p.leading} leading${p.extraProjected > 0 ? ' · +' + p.extraProjected + ' proj' : ''}${p.prSeats > 0 ? ' · ' + p.prSeats + ' PR' : ''}`;
+    // Build detail: "32 won · 84 leading · +3 FPTP proj · 22 PR = 141"
+    let detail = `${p.won} won · ${p.leading} leading`;
+    if (p.extraFPTP > 0) detail += ` · +${p.extraFPTP} FPTP proj`;
+    detail += ` · ${p.projectedPR} PR`;
     return `<div class="proj-party-row">
       <div class="proj-party-symbol" style="background:${pp.color}22">${pp.symbol}</div>
       <div class="proj-party-name" style="color:${pp.color}">${pp.short}</div>
@@ -1304,17 +1375,18 @@ function renderProjection() {
 
   panel.innerHTML = `
     <div class="projection-header">
-      <h3>📊 Seat Projection</h3>
+      <h3>📊 Seat Projection (FPTP + PR)</h3>
       <div class="projection-brand">EJ DESIGNS PROJECTION</div>
     </div>
 
     <div style="font-size:0.72rem;color:var(--text2);margin-bottom:12px">
-      <span style="color:var(--green)">${totalWon} declared</span> · ${totalResults - totalWon} leading · ${remainingFPTP} remaining
+      FPTP: <span style="color:var(--green)">${totalWon} declared</span> · ${totalResults - totalWon} leading · ${remainingFPTP} remaining
+      &nbsp;|&nbsp; PR: ${totalKnownPR > 0 ? totalKnownPR + ' allocated' : 'projected'} of ${TOTAL_PR}
     </div>
 
     <!-- Leader progress bar with majority/2/3 markers -->
     <div style="font-size:0.7rem;font-weight:600;margin-bottom:4px;color:${leaderP.color}">
-      ${leaderP.symbol} ${leader.name} — Projected: ${leaderTotal} seats
+      ${leaderP.symbol} ${leader.name} — Projected: ${leaderTotal} of ${TOTAL_SEATS} seats
     </div>
     <div class="threshold-bar">
       <div class="threshold-fill" style="width:${fillPct}%;background:linear-gradient(90deg, ${leaderP.color}, ${leaderP.color}cc)">
@@ -1348,12 +1420,12 @@ function renderProjection() {
 
     <!-- Party seat projections -->
     <div style="margin-top:16px;font-size:0.72rem;font-weight:600;color:var(--text2);margin-bottom:8px">
-      Projected Seat Distribution (FPTP + PR)
+      Projected Seat Distribution
     </div>
     ${partyRows}
 
     <div style="margin-top:12px;font-size:0.58rem;color:var(--text2);text-align:center;font-style:italic">
-      Assumes current leads hold. Remaining ${remainingFPTP} seats distributed proportionally. Not an official forecast.
+      FPTP: leads hold + remaining ${remainingFPTP} seats proportional. ${prMethod}. Not an official forecast.
     </div>
   `;
 }
@@ -1667,8 +1739,15 @@ function applyLiveData(apiData) {
   if (apiData.data.partySeats && Object.keys(apiData.data.partySeats).length > 0) {
     for (const [key, data] of Object.entries(apiData.data.partySeats)) {
       if (PARTIES[key]) {
-        PARTIES[key].prSeats = data.pr || 0;
-        PARTIES[key].totalSeats = data.total || 0;
+        // PR seats: only update if new value is > 0 (OnlineKhabar sends pr:0, don't wipe)
+        const newPr = data.pr || 0;
+        if (newPr > 0) {
+          PARTIES[key].prSeats = Math.max(PARTIES[key].prSeats || 0, newPr);
+        }
+        const newTotalSeats = data.total || 0;
+        if (newTotalSeats > 0) {
+          PARTIES[key].totalSeats = Math.max(PARTIES[key].totalSeats || 0, newTotalSeats);
+        }
       }
     }
   }
@@ -1708,7 +1787,17 @@ function applyLiveData(apiData) {
         if (liveConst.pdniCenterId) local.pdniCenterId = liveConst.pdniCenterId;
         applied = true;
       } else if (!local && liveConst.name && liveConst.candidates && liveConst.candidates.length > 0) {
-        // New constituency — add it to ALL_CONSTITUENCIES
+        // New constituency — add it ONLY if we haven't hit the 165 cap
+        // This prevents duplicates from inflating the list
+        if (ALL_CONSTITUENCIES.length >= 165) {
+          console.warn(`[Data] Skipping new constituency "${liveConst.name}" — already at 165 cap`);
+          continue;
+        }
+        // Also do an exact name check to prevent duplicates
+        if (ALL_CONSTITUENCIES.some(c => c.name === liveConst.name)) {
+          console.warn(`[Data] Skipping duplicate constituency "${liveConst.name}"`);
+          continue;
+        }
         const newConst = {
           name: liveConst.name,
           province: liveConst.province || '',
@@ -1750,7 +1839,7 @@ function cacheDataToStorage() {
       }))
     };
     for (const [k, p] of Object.entries(PARTIES)) {
-      snapshot.parties[k] = { won: p.won, leading: p.leading };
+      snapshot.parties[k] = { won: p.won, leading: p.leading, prSeats: p.prSeats || 0 };
     }
     localStorage.setItem('nepal_election_2082_v2', JSON.stringify(snapshot));
     console.log('[Cache] Saved live data to localStorage');
@@ -1785,8 +1874,17 @@ function loadCachedData() {
       }
       for (const [k, v] of Object.entries(cache.parties)) {
         if (PARTIES[k]) {
-          PARTIES[k].won = Math.max(PARTIES[k].won, v.won || 0);
-          PARTIES[k].leading = Math.max(PARTIES[k].leading || 0, v.leading || 0);
+          // Same total-based HWM as applyLiveData: won only up, total only up
+          const cachedWon = v.won || 0;
+          const cachedLeading = v.leading || 0;
+          const bestWon = Math.max(PARTIES[k].won, cachedWon);
+          const oldTotal = PARTIES[k].won + PARTIES[k].leading;
+          const cachedTotal = cachedWon + cachedLeading;
+          const bestTotal = Math.max(oldTotal, cachedTotal);
+          PARTIES[k].won = bestWon;
+          PARTIES[k].leading = Math.max(0, bestTotal - bestWon);
+          // Restore prSeats if cached
+          if (v.prSeats > 0) PARTIES[k].prSeats = Math.max(PARTIES[k].prSeats || 0, v.prSeats);
         }
       }
     }
