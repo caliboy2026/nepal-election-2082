@@ -727,7 +727,7 @@ function clearGeoNav() {
   document.getElementById('geoDistrict').disabled = true;
   document.getElementById('geoConst').innerHTML = '<option value="">All Constituencies</option>';
   document.getElementById('geoConst').disabled = true;
-  activeTab = 'featured';
+  activeTab = 'none';
   renderConstituencyTabs();
   renderConstituencies();
 }
@@ -837,8 +837,17 @@ function isConstWon(c) {
 }
 
 function showPartyDetail(partyKey, type) {
+  // Re-sync wonSet and table before showing popup to prevent stale data mismatch
+  buildWonSet();
+  renderSeatBar();
+  renderPartyTable();
+
   const party = PARTIES[partyKey];
   if (!party) return;
+
+  // Snapshot the official count NOW (same value the table just rendered)
+  const officialWon = party.won;
+  const officialLeading = party.leading;
 
   const matches = [];
   ALL_CONSTITUENCIES.forEach(c => {
@@ -874,13 +883,12 @@ function showPartyDetail(partyKey, type) {
   const label = type === 'won' ? 'Won / Projected' : 'Leading';
   const color = type === 'won' ? 'var(--green)' : 'var(--blue)';
 
-  // Count sub-categories for the header
+  // Use the snapshotted official count (matches the just-refreshed table)
+  const officialCount = type === 'won' ? officialWon : officialLeading;
+
+  // Count sub-categories for the breakdown
   const declaredCount = matches.filter(m => m.status === 'won').length;
   const likelyCount = matches.filter(m => m.status === 'likely_winner').length;
-
-  // For "won" popup: use actual match count (declared + projected) as the header number
-  // This avoids mismatch between header and detail breakdown
-  const officialCount = type === 'won' ? (declaredCount + likelyCount) : party.leading;
   const gap = officialCount - matches.length;
 
   let html = `<div class="popup-overlay" onclick="closePopup()"></div>`;
@@ -966,7 +974,7 @@ function clearSearch() {
   document.getElementById('collapsibleSections').classList.remove('collapsed');
   document.getElementById('constTabBar').style.display = '';
   document.getElementById('partyFilters').style.display = '';
-  activeTab = 'featured';
+  activeTab = 'none';
   renderAll();
 }
 
@@ -1075,7 +1083,7 @@ document.getElementById('searchInput').addEventListener('input', function(e) {
     } else if (!q) {
       searchQuery = '';
       partyFilter = '';
-      activeTab = 'featured';
+      activeTab = 'none';
     }
     renderAll();
   }, 200);
@@ -1128,7 +1136,7 @@ function setPartyFilter(key) {
   searchQuery = '';
   document.getElementById('searchInput').value = '';
   // When selecting a party filter, switch to 'all' tab to show everything
-  if (partyFilter) { activeTab = 'all'; } else { activeTab = 'featured'; }
+  if (partyFilter) { activeTab = 'all'; } else { activeTab = 'none'; }
   renderAll();
 }
 
@@ -1326,15 +1334,17 @@ function renderProjection() {
   `;
 }
 
-let activeTab = 'featured';
+let activeTab = 'none';
 
 // Returns all cards for the tab, but tags each with .match = true/false
 function getFilteredConstituencies(tabId) {
   let list;
-  if (tabId === 'pinned') {
+  if (tabId === 'none') {
+    return [];  // No tab selected — show nothing
+  } else if (tabId === 'pinned') {
     list = ALL_CONSTITUENCIES.filter(c => isPinned(c.name));
-  } else if (tabId === 'featured') {
-    list = ALL_CONSTITUENCIES.filter(c => c.featured);
+  } else if (tabId === 'declared') {
+    list = ALL_CONSTITUENCIES.filter(c => getConstStatus(c) === 'won');
   } else if (tabId === 'kathmandu') {
     list = ALL_CONSTITUENCIES.filter(c => c.name.startsWith('Kathmandu') || c.name.startsWith('Lalitpur') || c.name.startsWith('Bhaktapur'));
   } else if (tabId === 'all') {
@@ -1393,7 +1403,7 @@ function renderConstituencyTabs() {
     tabs.push({id:'pinned', label:`📌 Pinned (${pinnedConsts.length})`});
   }
   tabs.push(
-    {id:'featured', label:'🔥 Key Battles'},
+    {id:'declared', label:'✓ Declared'},
     {id:'kathmandu', label:'🏙️ Kathmandu Valley'},
     {id:'Koshi', label:'Koshi'},
     {id:'Madhesh', label:'Madhesh'},
@@ -1448,6 +1458,11 @@ function renderConstituencies() {
   const hasFilter = partyFilter || (searchQuery && searchQuery.length >= 2);
   const anyMatch = data.some(c => c._match);
 
+  if (activeTab === 'none' && !hasFilter) {
+    grid.innerHTML = `<div class="no-results"><div class="big">🗳️</div>Select a tab above to view constituency results<br>or use search to find a specific constituency.</div>`;
+    return;
+  }
+
   if (!data || data.length === 0) {
     grid.innerHTML = `<div class="no-results"><div class="big">🗳️</div>No matching results found.<br>Try a different search or filter.</div>`;
     return;
@@ -1461,7 +1476,6 @@ function renderConstituencies() {
   grid.innerHTML = data.map(c => {
     const maxVotes = Math.max(...c.candidates.map(x=>x.votes));
     const totalVotes = c.candidates.reduce((s,x)=>s+x.votes,0);
-    const isFeatured = c.featured||false;
     const isMatch = hasFilter && c._match;
     const isDimmed = hasFilter && !c._match;
 
@@ -1524,9 +1538,8 @@ function renderConstituencies() {
       statusBadge = '<span style="display:inline-block;background:#f59e0b22;color:#f59e0b;font-size:0.65rem;font-weight:700;padding:2px 8px;border-radius:4px;margin-left:6px">⚡ PROJECTED</span>';
     }
 
-    return `<div class="hot-card ${isFeatured?'featured':''} ${isMatch?'search-match':''} ${isDimmed?'dimmed':''}" id="card-${cardId}">
+    return `<div class="hot-card ${isMatch?'search-match':''} ${isDimmed?'dimmed':''}" id="card-${cardId}">
       <button class="pin-btn ${isPinned(c.name)?'pinned':''}" onclick="event.stopPropagation();togglePin('${c.name.replace(/'/g,"\\'")}')" title="${isPinned(c.name)?'Unpin':'Pin'} ${c.name}">⭐</button>
-      ${c.tag?`<div class="featured-tag">${c.tag}</div>`:''}
       <div class="constituency-name">${highlightText(c.name, searchQuery)}${statusBadge}</div>
       ${rows}
       ${hiddenRows}
