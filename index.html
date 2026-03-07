@@ -873,12 +873,15 @@ function showPartyDetail(partyKey, type) {
 
   const label = type === 'won' ? 'Won / Projected' : 'Leading';
   const color = type === 'won' ? 'var(--green)' : 'var(--blue)';
-  const officialCount = type === 'won' ? party.won : party.leading;
-  const gap = officialCount - matches.length;
 
   // Count sub-categories for the header
   const declaredCount = matches.filter(m => m.status === 'won').length;
   const likelyCount = matches.filter(m => m.status === 'likely_winner').length;
+
+  // For "won" popup: use actual match count (declared + projected) as the header number
+  // This avoids mismatch between header and detail breakdown
+  const officialCount = type === 'won' ? (declaredCount + likelyCount) : party.leading;
+  const gap = officialCount - matches.length;
 
   let html = `<div class="popup-overlay" onclick="closePopup()"></div>`;
   html += `<div class="badge-popup">`;
@@ -1512,10 +1515,19 @@ function renderConstituencies() {
          <button onclick="var el=document.getElementById('expand-${cardId}');var show=el.style.display==='none';el.style.display=show?'block':'none';this.textContent=show?'▲ Show less':'▼ +${hiddenCands.length} more candidates'" style="width:100%;background:none;border:1px solid var(--border);border-radius:8px;color:var(--text2);padding:6px;font-size:0.7rem;cursor:pointer;margin-top:6px;transition:color 0.2s">▼ +${hiddenCands.length} more candidates</button>`
       : '';
 
+    // Determine constituency status for card badge
+    const constStatus = getConstStatus(c);
+    let statusBadge = '';
+    if (constStatus === 'won') {
+      statusBadge = '<span style="display:inline-block;background:#22c55e22;color:#22c55e;font-size:0.65rem;font-weight:700;padding:2px 8px;border-radius:4px;margin-left:6px">✓ DECLARED</span>';
+    } else if (constStatus === 'likely_winner') {
+      statusBadge = '<span style="display:inline-block;background:#f59e0b22;color:#f59e0b;font-size:0.65rem;font-weight:700;padding:2px 8px;border-radius:4px;margin-left:6px">⚡ PROJECTED</span>';
+    }
+
     return `<div class="hot-card ${isFeatured?'featured':''} ${isMatch?'search-match':''} ${isDimmed?'dimmed':''}" id="card-${cardId}">
       <button class="pin-btn ${isPinned(c.name)?'pinned':''}" onclick="event.stopPropagation();togglePin('${c.name.replace(/'/g,"\\'")}')" title="${isPinned(c.name)?'Unpin':'Pin'} ${c.name}">⭐</button>
       ${c.tag?`<div class="featured-tag">${c.tag}</div>`:''}
-      <div class="constituency-name">${highlightText(c.name, searchQuery)}</div>
+      <div class="constituency-name">${highlightText(c.name, searchQuery)}${statusBadge}</div>
       <div style="font-size:0.68rem;color:var(--text2);margin-bottom:8px">📦 ${c.counted}</div>
       ${rows}
       ${hiddenRows}

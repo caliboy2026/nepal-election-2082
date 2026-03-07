@@ -15,6 +15,7 @@
 // ═══════════════════════════════════════════════════════════
 
 const NEPSEBAJAR_URL = 'https://election.nepsebajar.com/en';
+const ONLINEKHABAR_API = 'https://election.onlinekhabar.com/wp-json/okelapi/v1/2082/home/election-results?limit=200';
 const BATCH_SIZE = 15;
 
 // ═══ IN-MEMORY STATE (may be wiped on isolate recycle) ═══
@@ -23,6 +24,7 @@ let deepCacheTimestamp = 0;
 let currentBatch = 0;
 let quickCache = null;
 let quickCacheTimestamp = 0;
+let quickSourceToggle = 0;   // alternates between 0=NepseBajar, 1=OnlineKhabar
 let kvLoaded = false;        // whether we've loaded from KV this isolate
 
 // ═══ KV PERSISTENCE — survives isolate restarts ═══
@@ -166,6 +168,22 @@ function normalizePartyByName(partyName) {
   return 'OTH';
 }
 
+// OnlineKhabar party_slug → our party key
+const OK_SLUG_MAP = {
+  'rastriya-swatantra-party-rsp': 'RSP',
+  'nepali-congress': 'NC',
+  'cpn-uml': 'UML',
+  'nepali-communist-party': 'NCP',
+  'rastriya-prajatantra-party': 'RPP',
+  'janata-samajwadi-party-nepal': 'JSP',
+  'janamat-party': 'JMP',
+  'shram-sanskriti-party': 'SSP',
+  'ujyalo-nepal-party': 'UNP',
+  'independent': 'IND',
+  'pargatishilloktantrikparty': 'PLP',
+  'nepal-workers-peasants-party-majdur-kishan-party': 'NJP',
+};
+
 async function fetchWithTimeout(url, timeoutMs = 6000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -186,17 +204,12 @@ async function fetchWithTimeout(url, timeoutMs = 6000) {
   }
 }
 
-// ═══ QUICK SCRAPE: Main page → party seat totals only ═══
-async function quickScrape() {
-  const now = Date.now();
-  if (quickCache && (now - quickCacheTimestamp) < 30000) {
-    return quickCache;
-  }
-
+// ═══ QUICK SCRAPE (NepseBajar): Main page → party seat totals ═══
+async function quickScrapeNepseBajar() {
   const res = await fetchWithTimeout(NEPSEBAJAR_URL, 8000);
   const html = await res.text();
 
-  const result = { partySeats: {} };
+  const result = { partySeats: {}, source: 'nepsebajar' };
 
   // Parse parliamentChartData → party seat totals (still works)
   const pcMatch = html.match(/parliamentChartData\s*=\s*(\[[\s\S]*?\])\s*;/);
@@ -218,8 +231,6 @@ async function quickScrape() {
   }
 
   // Parse HTML table for Leading vs Win breakdown
-  // Table columns by td position: [0]=name, [1]=Leading, [2]=Win, [3]=PR, [4]=Total, ...
-  // Win column may contain "-" (dash) when no wins declared — must parse by position
   const tableMatch = html.match(/Leading<\/th>([\s\S]*?)<\/table>/);
   if (tableMatch) {
     const tableHtml = tableMatch[1];
@@ -230,7 +241,6 @@ async function quickScrape() {
       const partyName = partyNameMatch[1].trim();
       const key = normalizePartyByName(partyName);
       if (key === 'OTH') continue;
-      // Extract td cells and parse by position
       const tds = row.match(/<td[^>]*>[\s\S]*?<\/td>/g) || [];
       const cellToNum = (td) => {
         const clean = td.replace(/<[^>]+>/g, '').replace(/,/g, '').trim();
@@ -238,9 +248,73 @@ async function quickScrape() {
         return m ? parseInt(m[1]) : 0;
       };
       if (tds.length >= 3 && result.partySeats[key]) {
-        result.partySeats[key].leading = cellToNum(tds[1]);  // td[1] = Leading
-        result.partySeats[key].won = cellToNum(tds[2]);       // td[2] = Win (0 if dash)
+        result.partySeats[key].leading = cellToNum(tds[1]);
+        result.partySeats[key].won = cellToNum(tds[2]);
       }
+    }
+  }
+
+  return result;
+}
+
+// ═══ QUICK SCRAPE (OnlineKhabar): JSON API → party seat totals ═══
+async function quickScrapeOnlineKhabar() {
+  const res = await fetchWithTimeout(ONLINEKHABAR_API, 6000);
+  const json = await res.json();
+
+  const result = { partySeats: {}, source: 'onlinekhabar' };
+
+  if (json.status === 200 && json.data && json.data.party_results) {
+    for (const p of json.data.party_results) {
+      const key = OK_SLUG_MAP[p.party_slug] || normalizePartyByName(p.party_name || '');
+      if (key === 'OTH') continue;
+      result.partySeats[key] = {
+        total: p.total_seat || 0,
+        direct: (p.total_seat || 0),
+        pr: 0,
+        leading: p.leading_count || 0,
+        won: p.winner_count || 0
+      };
+    }
+  }
+
+  return result;
+}
+
+// ═══ QUICK SCRAPE: Alternate between NepseBajar and OnlineKhabar ═══
+async function quickScrape() {
+  const now = Date.now();
+  if (quickCache && (now - quickCacheTimestamp) < 25000) {
+    return quickCache;
+  }
+
+  const useSource = quickSourceToggle % 2; // 0=NepseBajar, 1=OnlineKhabar
+  quickSourceToggle++;
+
+  let result;
+  try {
+    if (useSource === 0) {
+      result = await quickScrapeNepseBajar();
+    } else {
+      result = await quickScrapeOnlineKhabar();
+    }
+    // Validate: must have at least some party data
+    if (!result.partySeats || Object.keys(result.partySeats).length === 0) {
+      throw new Error('Empty party data from ' + (useSource === 0 ? 'NepseBajar' : 'OnlineKhabar'));
+    }
+  } catch (e) {
+    // Fallback: try the other source
+    console.log(`[QuickScrape] ${useSource === 0 ? 'NepseBajar' : 'OnlineKhabar'} failed: ${e.message}, trying fallback`);
+    try {
+      if (useSource === 0) {
+        result = await quickScrapeOnlineKhabar();
+      } else {
+        result = await quickScrapeNepseBajar();
+      }
+    } catch (e2) {
+      // Both failed — return stale cache if available
+      if (quickCache) return quickCache;
+      throw e2;
     }
   }
 
@@ -423,7 +497,7 @@ function buildResponse(quick, deepResult, startTime) {
     fetchDurationMs: Date.now() - startTime,
     sources: {
       successful: [{
-        name: 'nepsebajar-v3.1',
+        name: `${quick.source || 'nepsebajar'}-v3.2`,
         constituencies: constituencies.length,
         deepCached: deepCacheSize,
         partySeats: quick.partySeats
@@ -488,12 +562,14 @@ export default {
     // ?status=true → return cache status for debugging
     if (params.status) {
       return jsonResponse({
-        version: 'v3.1-cf-kv',
+        version: 'v3.2-cf-dual-source',
         deepCached: Object.keys(deepCache).length,
         kvAvailable: !!env.ELECTION_CACHE,
         totalConstituencies: TOTAL_CONSTITUENCIES,
         totalBatches: TOTAL_BATCHES,
         currentBatch,
+        quickSource: quickCache ? quickCache.source : null,
+        quickSourceToggle,
         deepCacheAge: deepCacheTimestamp ? Math.round((Date.now() - deepCacheTimestamp) / 1000) : null,
         quickCacheAge: quickCacheTimestamp ? Math.round((Date.now() - quickCacheTimestamp) / 1000) : null,
       });
