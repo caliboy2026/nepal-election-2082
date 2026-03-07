@@ -127,15 +127,26 @@
   .change-up { color:var(--green); font-size:0.72rem; font-weight:600; }
   .change-down { color:var(--red); font-size:0.72rem; font-weight:600; }
 
-  .provinces-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px; margin-bottom:22px; }
-  .province-card { background:var(--bg2); border:1px solid var(--border); border-radius:14px; padding:14px; }
-  .province-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
-  .province-name { font-weight:700; font-size:0.88rem; }
-  .province-seats { font-size:0.68rem; color:var(--text2); background:var(--bg3); padding:3px 8px; border-radius:8px; }
-  .pbar-row { display:flex; align-items:center; gap:8px; margin-bottom:5px; }
-  .pbar-label { font-size:0.68rem; width:38px; flex-shrink:0; font-weight:600; }
-  .pbar-track { flex:1; height:18px; background:var(--bg3); border-radius:4px; overflow:hidden; }
-  .pbar-fill { height:100%; border-radius:4px; display:flex; align-items:center; padding-left:6px; font-size:0.62rem; font-weight:700; color:#fff; transition:width 1s ease; }
+  /* ═══ Province Breakdown — Compact Stacked-Bar Table ═══ */
+  .prov-table { width:100%; background:var(--bg2); border:1px solid var(--border); border-radius:14px; overflow:hidden; margin-bottom:22px; }
+  .prov-row { display:grid; grid-template-columns:140px 50px 1fr; align-items:center; padding:10px 16px; border-bottom:1px solid var(--border); transition:background 0.2s; cursor:default; }
+  .prov-row:last-child { border-bottom:none; }
+  .prov-row:hover { background:var(--bg3); }
+  .prov-label-name { font-weight:700; font-size:0.82rem; }
+  .prov-label-nepali { font-size:0.62rem; color:var(--text2); margin-top:1px; }
+  .prov-count { font-size:0.72rem; font-weight:600; color:var(--text2); text-align:center; }
+  .prov-count span { color:var(--green); }
+  .prov-stacked-bar { height:28px; display:flex; border-radius:6px; overflow:hidden; background:var(--bg3); position:relative; }
+  .prov-seg { height:100%; display:flex; align-items:center; justify-content:center; font-size:0.6rem; font-weight:700; color:#fff; transition:width 0.8s cubic-bezier(0.25,0.46,0.45,0.94); min-width:0; overflow:hidden; }
+  .prov-seg .seg-inner { white-space:nowrap; text-shadow:0 1px 2px rgba(0,0,0,0.4); }
+  .prov-stacked-bar .maj-line { position:absolute; top:-2px; bottom:-2px; width:2px; background:#fbbf24; z-index:5; pointer-events:none; }
+  .prov-stacked-bar .maj-line::after { content:'▼'; position:absolute; top:-12px; left:50%; transform:translateX(-50%); font-size:7px; color:#fbbf24; }
+  .prov-tooltip { display:none; position:absolute; bottom:calc(100% + 8px); left:50%; transform:translateX(-50%); background:#1e2030; border:1px solid var(--border); border-radius:10px; padding:10px 14px; z-index:100; min-width:180px; box-shadow:0 8px 24px rgba(0,0,0,0.5); }
+  .prov-row:hover .prov-tooltip { display:block; }
+  .tt-row { display:flex; justify-content:space-between; align-items:center; padding:3px 0; font-size:0.72rem; }
+  .tt-dot { width:8px; height:8px; border-radius:50%; margin-right:6px; display:inline-block; }
+  .tt-party { display:flex; align-items:center; }
+  .tt-count { font-weight:700; }
 
   .hot-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(340px,1fr)); gap:12px; margin-bottom:22px; }
   .hot-card { background:var(--bg2); border:1px solid var(--border); border-radius:14px; padding:14px; position:relative; overflow:hidden; transition:border-color 0.3s; }
@@ -182,11 +193,11 @@
   .projection-brand { font-size:0.55rem; color:var(--text2); letter-spacing:1.5px; text-transform:uppercase; }
   .proj-sub { font-size:0.72rem; color:var(--text2); margin-bottom:14px; }
   .proj-sub span { font-weight:600; }
-  .hemicycle-wrap { position:relative; width:100%; aspect-ratio:2/1.1; margin:0 auto 8px; }
-  .hemicycle-wrap canvas { width:100%; height:100%; }
+  .hemicycle-wrap { position:relative; width:100%; aspect-ratio:2/0.85; max-width:480px; margin:0 auto 8px; }
+  .hemicycle-wrap canvas { width:100%; height:100%; display:block; }
   .hemi-center { position:absolute; bottom:0; left:50%; transform:translateX(-50%); text-align:center; pointer-events:none; }
-  .hemi-center .big-num { font-size:2.2rem; font-weight:900; letter-spacing:-0.03em; background:linear-gradient(135deg,#fff,#aaa); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-  .hemi-center .hc-sub { font-size:0.55rem; color:var(--text2); text-transform:uppercase; letter-spacing:0.08em; }
+  .hemi-center .big-num { font-size:1.5rem; font-weight:900; letter-spacing:-0.03em; background:linear-gradient(135deg,#fff,#aaa); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .hemi-center .hc-sub { font-size:0.45rem; color:var(--text2); text-transform:uppercase; letter-spacing:0.08em; }
   .hemi-tooltip { position:absolute; background:rgba(0,0,0,0.88); border:1px solid rgba(255,255,255,0.15); border-radius:8px; padding:8px 12px; font-size:0.72rem; color:#fff; pointer-events:none; white-space:nowrap; z-index:10; display:none; box-shadow:0 4px 12px rgba(0,0,0,0.4); }
   .hemi-sections { display:flex; justify-content:space-between; padding:0 10px; margin-bottom:12px; }
   .hemi-sec { display:flex; flex-direction:column; align-items:center; gap:1px; }
@@ -198,11 +209,18 @@
   .prob-card .prob-title { font-size:0.6rem; color:var(--text2); margin-bottom:4px; text-transform:uppercase; letter-spacing:0.5px; }
   .prob-pct { font-size:1.5rem; font-weight:800; }
   .prob-card .prob-detail { font-size:0.55rem; color:var(--text2); margin-top:3px; }
+  /* ═══ RSP Analog Gauge ═══ */
+  .gauge-section { margin-top:14px; padding-top:14px; border-top:1px solid var(--border); }
+  .gauge-title { font-size:0.7rem; color:var(--text2); text-transform:uppercase; letter-spacing:0.08em; text-align:center; margin-bottom:10px; font-weight:600; }
+  .gauge-title span { color:var(--green); font-weight:800; }
+  .gauge-wrap { position:relative; width:100%; max-width:360px; aspect-ratio:2/1.15; margin:0 auto; }
+  .gauge-wrap canvas { width:100%; height:100%; display:block; }
+  .gauge-labels { display:flex; justify-content:space-between; padding:4px 16px 0; font-size:0.55rem; color:var(--text2); max-width:360px; margin:0 auto; }
   .hemi-legend { display:flex; flex-wrap:wrap; gap:5px 12px; justify-content:center; }
   .hemi-legend-item { display:flex; align-items:center; gap:4px; font-size:0.65rem; color:var(--text2); }
   .hemi-legend-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
   .hemi-legend-item .hl-count { font-weight:700; color:var(--text); }
-  @media(max-width:768px) { .hemicycle-wrap { aspect-ratio:2/1.2; } .hemi-center .big-num { font-size:1.6rem; } }
+  @media(max-width:768px) { .hemicycle-wrap { aspect-ratio:2/0.9; } .hemi-center .big-num { font-size:1.2rem; } .gauge-wrap { max-width:280px; } }
 
   .tab-bar { display:flex; gap:4px; margin-bottom:14px; flex-wrap:wrap; }
   .tab-btn { padding:7px 14px; border:1px solid var(--border); background:transparent; color:var(--text2); border-radius:8px; cursor:pointer; font-size:0.75rem; font-weight:500; font-family:inherit; transition:all 0.2s; }
@@ -236,7 +254,10 @@
   @media(max-width:768px) {
     .header-inner{flex-direction:column;align-items:flex-start}
     .container{padding:12px 10px}
-    .hot-grid,.provinces-grid{grid-template-columns:1fr}
+    .hot-grid{grid-template-columns:1fr}
+    .prov-row{grid-template-columns:90px 40px 1fr;padding:8px 10px}
+    .prov-label-name{font-size:0.74rem}
+    .prov-stacked-bar{height:22px}
     .summary-strip{grid-template-columns:repeat(2,1fr)}
     .search-input{font-size:0.85rem;padding:12px 16px 12px 42px}
     .geo-nav select{min-width:100%;flex-basis:100%}
@@ -323,9 +344,9 @@
       <div class="party-rows" id="partyTableBody"></div>
     </div>
 
-    <!-- Province Results -->
+    <!-- Province Results — Compact Stacked-Bar Table -->
     <div class="section-title animate-in"><span>🗺️</span> Province-wise Breakdown</div>
-    <div class="provinces-grid" id="provincesGrid"></div>
+    <div class="prov-table" id="provincesGrid"></div>
 
     <!-- EJ Designs Projection — Hemicycle Parliament -->
     <div class="section-title animate-in"><span>📊</span> Projected Parliament Composition</div>
@@ -357,6 +378,19 @@
       </div>
       <div class="prob-gauge" id="probGauge"></div>
       <div class="hemi-legend" id="hemiLegend"></div>
+      <!-- RSP Road to Supermajority Gauge -->
+      <div class="gauge-section">
+        <div class="gauge-title"><span>RSP</span> — Road to Supermajority</div>
+        <div class="gauge-wrap" id="gaugeWrap">
+          <canvas id="gaugeCanvas"></canvas>
+        </div>
+        <div class="gauge-labels">
+          <span>0 seats</span>
+          <span style="color:#fbbf24">▲ 138 Majority</span>
+          <span style="color:#4ade80">▲ 184 Supermajority</span>
+          <span>275 seats</span>
+        </div>
+      </div>
       <div id="projDisclaimer" style="margin-top:10px;font-size:0.55rem;color:var(--text2);text-align:center;font-style:italic"></div>
     </div>
   </div>
@@ -1292,25 +1326,32 @@ function updateProvinceResults() {
 function renderProvinces() {
   const grid = document.getElementById('provincesGrid');
   grid.innerHTML = PROVINCES.map(prov => {
-    const bars = Object.entries(prov.results)
-      .filter(([,v])=>v>0).sort(([,a],[,b])=>b-a)
-      .map(([party,seats]) => {
-        const p = getParty(party);
-        const pct = Math.max(seats/prov.seats*100, 5);
-        const hl = partyFilter===party ? 'opacity:1' : partyFilter ? 'opacity:0.3' : '';
-        return `<div class="pbar-row" style="${hl}">
-          <div class="pbar-label" style="color:${p.color}">${p.short}</div>
-          <div class="pbar-track"><div class="pbar-fill" style="width:${pct}%;background:${p.color}">${seats}</div></div>
-        </div>`;
-      }).join('');
-    const totalLeading = Object.values(prov.results).reduce((s,v)=>s+v,0);
-    return `<div class="province-card">
-      <div class="province-header">
-        <div><div class="province-name">${prov.name}</div>
-        <div style="font-size:0.68rem;color:var(--text2)">${prov.nepali} · ${prov.districts} districts</div></div>
-        <div class="province-seats">${totalLeading} / ${prov.seats} seats</div>
+    const entries = Object.entries(prov.results).filter(([,v])=>v>0).sort(([,a],[,b])=>b-a);
+    const total = entries.reduce((s,[,v])=>s+v,0);
+    const majPct = (Math.ceil(prov.seats/2)+1)/prov.seats*100;
+    // Stacked bar segments
+    const segs = entries.map(([party,seats]) => {
+      const p = getParty(party);
+      const pct = seats/prov.seats*100;
+      const hl = partyFilter===party ? '' : partyFilter ? 'opacity:0.3;' : '';
+      const label = pct > 8 ? `<span class="seg-inner">${p.short} ${seats}</span>` : '';
+      return `<div class="prov-seg" style="width:${pct}%;background:${p.color};${hl}">${label}</div>`;
+    }).join('');
+    const remainPct = (prov.seats-total)/prov.seats*100;
+    const remainSeg = remainPct > 0 ? `<div class="prov-seg" style="width:${remainPct}%;background:var(--bg3)"></div>` : '';
+    // Tooltip rows
+    const ttRows = entries.map(([party,seats]) => {
+      const p = getParty(party);
+      return `<div class="tt-row"><span class="tt-party"><span class="tt-dot" style="background:${p.color}"></span>${p.name||party}</span><span class="tt-count" style="color:${p.color}">${seats}</span></div>`;
+    }).join('');
+    const ttRemain = prov.seats-total > 0 ? `<div class="tt-row" style="border-top:1px solid var(--border);margin-top:4px;padding-top:6px;"><span style="color:var(--text2)">Remaining</span><span class="tt-count" style="color:var(--text2)">${prov.seats-total}</span></div>` : '';
+    return `<div class="prov-row">
+      <div><div class="prov-label-name">${prov.name}</div><div class="prov-label-nepali">${prov.nepali}</div></div>
+      <div class="prov-count"><span>${total}</span>/${prov.seats}</div>
+      <div style="position:relative">
+        <div class="prov-stacked-bar">${segs}${remainSeg}<div class="maj-line" style="left:${majPct}%"></div></div>
+        <div class="prov-tooltip"><div style="font-weight:700;font-size:0.78rem;margin-bottom:6px">${prov.name} Province</div>${ttRows}${ttRemain}</div>
       </div>
-      <div class="province-bars">${bars||'<div style="font-size:0.72rem;color:var(--text2)">Counting...</div>'}</div>
     </div>`;
   }).join('');
 }
@@ -1399,55 +1440,47 @@ function renderProjection() {
   document.getElementById('projDisclaimer').textContent =
     `FPTP: leads hold + remaining ${remainingFPTP} seats proportional. ${prMethod}. Not an official forecast.`;
 
-  // ═══ DRAW HEMICYCLE ═══
+  // ═══ DRAW HEMICYCLE — compact 11 rows, labels pushed out ═══
   const canvas = document.getElementById('hemiCanvas');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   const wrap = document.getElementById('hemiWrap');
   const DPR = window.devicePixelRatio || 1;
-  const w = wrap.clientWidth;
-  const h = wrap.clientHeight;
-  canvas.width = w * DPR;
-  canvas.height = h * DPR;
-  canvas.style.width = w + 'px';
-  canvas.style.height = h + 'px';
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+  canvas.width = w * DPR; canvas.height = h * DPR;
+  canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   ctx.clearRect(0, 0, w, h);
 
   const cx = w / 2, cy = h * 0.95;
-  const ROWS = 9;
-  const minR = h * 0.22, maxR = h * 0.92;
-  const gap = (maxR - minR) / ROWS;
-  const dotGap = gap * 0.12;
+  const ROWS = 11;
+  const LABEL_RESERVE = 22;
+  const drawMinR = h * 0.18 + LABEL_RESERVE;
+  const maxR = h * 0.93;
+  const gap = (maxR - drawMinR) / ROWS;
 
-  // Calculate rows
   const rowInfo = [];
   let totalSlots = 0;
   for (let r = 0; r < ROWS; r++) {
-    const radius = minR + r * gap + gap / 2;
+    const radius = drawMinR + r * gap + gap / 2;
     const arcLen = Math.PI * radius;
-    const dotSize = gap - dotGap;
+    const dotSize = gap - gap * 0.18;
     const count = Math.floor(arcLen / (dotSize * 1.15));
-    rowInfo.push({radius, dotSize: (gap - dotGap) / 2 * 0.85, rawCount: count});
+    rowInfo.push({radius, dotSize: (gap - gap * 0.18) / 2 * 0.72, rawCount: count});
     totalSlots += count;
   }
-  // Scale to exactly 275
   const scale = 275 / totalSlots;
   totalSlots = 0;
   rowInfo.forEach(r => { r.count = Math.round(r.rawCount * scale); totalSlots += r.count; });
   rowInfo[rowInfo.length-1].count += (275 - totalSlots);
 
-  // Build FPTP color array (sorted by party size, largest party fills first = inner front rows)
   const fptpColors = [];
   projections.forEach(p => { for (let i = 0; i < p.projectedFPTP; i++) fptpColors.push({color: getParty(p.key).color, key: p.key}); });
   while (fptpColors.length < TOTAL_FPTP) fptpColors.push({color:'#2a2d3e', key:'REM'});
-
-  // Build PR color array
   const prColors = [];
   projections.forEach(p => { for (let i = 0; i < p.projectedPR; i++) prColors.push({color: getParty(p.key).color, key: p.key}); });
   while (prColors.length < TOTAL_PR) prColors.push({color:'#2a2d3e', key:'REM'});
 
-  // Place seats: each row splits 60/40 into FPTP (left) and PR (right)
   _hemiSeats = [];
   let fIdx = 0, pIdx = 0;
   for (const row of rowInfo) {
@@ -1469,59 +1502,227 @@ function renderProjection() {
     }
   }
 
-  // Draw divider line
-  ctx.save();
-  ctx.setLineDash([3,4]);
-  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-  ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx, cy - maxR - 4); ctx.stroke();
-  ctx.restore();
+  // Divider line
+  ctx.save(); ctx.setLineDash([3,4]); ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx, LABEL_RESERVE + 2); ctx.stroke(); ctx.restore();
 
-  // Draw section labels at top
-  ctx.save();
-  ctx.font = '600 10px Inter,sans-serif';
-  ctx.fillStyle = 'rgba(255,255,255,0.2)';
-  ctx.textAlign = 'center';
-  ctx.fillText('◀ FPTP', cx - 36, 12);
-  ctx.fillText('PR ▶', cx + 36, 12);
-  ctx.restore();
+  // Labels pushed out above the arc
+  const fontSize = Math.max(9, w * 0.024);
+  ctx.save(); ctx.font = `700 ${fontSize}px Inter,system-ui,sans-serif`; ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(255,255,255,0.25)';
+  ctx.fillText('◀  FPTP', cx * 0.5, 14); ctx.fillText('PR  ▶', cx * 1.5, 14); ctx.restore();
 
-  // Draw majority arc line
+  // Majority arc line
   const majAngle = Math.PI * (1 - MAJORITY / TOTAL_SEATS);
-  ctx.save();
-  ctx.strokeStyle = 'rgba(245,197,66,0.3)';
-  ctx.lineWidth = 1.5;
-  ctx.setLineDash([2,3]);
+  ctx.save(); ctx.strokeStyle = 'rgba(245,197,66,0.25)'; ctx.lineWidth = 1.2; ctx.setLineDash([2,3]);
   ctx.beginPath();
-  ctx.moveTo(cx + (minR-6)*Math.cos(majAngle), cy - (minR-6)*Math.sin(majAngle));
-  ctx.lineTo(cx + (maxR+6)*Math.cos(majAngle), cy - (maxR+6)*Math.sin(majAngle));
-  ctx.stroke();
-  ctx.restore();
-  // Majority label
-  ctx.save();
-  ctx.font = '700 9px Inter,sans-serif';
-  ctx.fillStyle = 'rgba(245,197,66,0.6)';
-  ctx.textAlign = 'center';
-  const mlx = cx + (maxR+16)*Math.cos(majAngle);
-  const mly = cy - (maxR+16)*Math.sin(majAngle);
-  ctx.fillText('138', mlx, mly);
-  ctx.restore();
+  ctx.moveTo(cx + (drawMinR-4)*Math.cos(majAngle), cy - (drawMinR-4)*Math.sin(majAngle));
+  ctx.lineTo(cx + (maxR+4)*Math.cos(majAngle), cy - (maxR+4)*Math.sin(majAngle));
+  ctx.stroke(); ctx.restore();
+  ctx.save(); ctx.font = `700 ${Math.max(7, w*0.018)}px Inter,sans-serif`;
+  ctx.fillStyle = 'rgba(245,197,66,0.5)'; ctx.textAlign = 'center';
+  ctx.fillText('138', cx + (maxR+14)*Math.cos(majAngle), cy - (maxR+14)*Math.sin(majAngle)); ctx.restore();
 
   // Draw seats
   for (const seat of _hemiSeats) {
-    ctx.beginPath();
-    ctx.arc(seat.x, seat.y, seat.r, 0, Math.PI * 2);
-    ctx.fillStyle = seat.color;
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(seat.x, seat.y, seat.r, 0, Math.PI * 2); ctx.fillStyle = seat.color; ctx.fill();
     if (seat.key !== 'REM') {
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(seat.x, seat.y, seat.r, Math.PI, 0);
-      ctx.fillStyle = 'rgba(255,255,255,0.1)';
-      ctx.fill();
-      ctx.restore();
+      ctx.save(); ctx.beginPath(); ctx.arc(seat.x, seat.y, seat.r, Math.PI, 0);
+      ctx.fillStyle = 'rgba(255,255,255,0.1)'; ctx.fill(); ctx.restore();
     }
   }
+
+  // ═══ DRAW RSP GAUGE ═══
+  drawRSPGauge(leaderProj.key === 'RSP' ? leaderTotal : 0, projections);
+}
+
+// ═══ RSP ANALOG GAUGE — Born2Rule gradient technique ═══
+let _gaugeNeedleAngle = Math.PI;
+let _gaugeTargetAngle = Math.PI;
+let _gaugeAnimFrame = null;
+let _gaugeVibPhase = 0;
+let _gaugeSeats = 0;
+
+function drawRSPGauge(rspSeats, projections) {
+  _gaugeSeats = rspSeats || 0;
+  // Find RSP projected total from projections array
+  if (projections) {
+    const rspP = projections.find(p => p.key === 'RSP');
+    if (rspP) _gaugeSeats = rspP.projectedTotal;
+  }
+  _gaugeTargetAngle = Math.PI - (Math.min(_gaugeSeats, 275) / 275) * Math.PI;
+  if (!_gaugeAnimFrame) _animateGauge();
+}
+
+function _drawGaugeFrame() {
+  const canvas = document.getElementById('gaugeCanvas');
+  const wrap = document.getElementById('gaugeWrap');
+  if (!canvas || !wrap) return;
+  const ctx = canvas.getContext('2d');
+  const DPR = window.devicePixelRatio || 1;
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+  canvas.width = w * DPR; canvas.height = h * DPR;
+  canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+
+  const cx = w / 2, cy = h * 0.85;
+  const outerR = Math.min(w * 0.44, h * 0.78);
+  const innerR = outerR * 0.62;
+  const MAJORITY = 138, TWO_THIRDS = 184;
+  const seatToAngle = (s) => Math.PI - (Math.min(s, 275) / 275) * Math.PI;
+
+  // 1. White base
+  ctx.beginPath(); ctx.arc(cx, cy, outerR, Math.PI, 0);
+  ctx.arc(cx, cy, innerR, 0, Math.PI, true); ctx.closePath();
+  ctx.fillStyle = '#fff'; ctx.fill();
+
+  // 2. Blue gradient — left half
+  const blue = ctx.createLinearGradient(cx - outerR, cy, cx, cy);
+  blue.addColorStop(0, 'rgba(0,56,147,.95)');
+  blue.addColorStop(0.7, 'rgba(0,56,147,.45)');
+  blue.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.beginPath(); ctx.arc(cx, cy, outerR, Math.PI, Math.PI / 2);
+  ctx.arc(cx, cy, innerR, Math.PI / 2, Math.PI, true); ctx.closePath();
+  ctx.fillStyle = blue; ctx.fill();
+
+  // 3. Red gradient — right half
+  const red = ctx.createLinearGradient(cx, cy, cx + outerR, cy);
+  red.addColorStop(0, 'rgba(255,255,255,0)');
+  red.addColorStop(0.3, 'rgba(220,20,60,.45)');
+  red.addColorStop(1, 'rgba(220,20,60,.95)');
+  ctx.beginPath(); ctx.arc(cx, cy, outerR, Math.PI / 2, 0);
+  ctx.arc(cx, cy, innerR, 0, Math.PI / 2, true); ctx.closePath();
+  ctx.fillStyle = red; ctx.fill();
+
+  // 4. Radial glow
+  const glow = ctx.createRadialGradient(cx, cy, innerR, cx, cy, outerR);
+  glow.addColorStop(0, 'rgba(255,255,255,.75)');
+  glow.addColorStop(0.4, 'rgba(255,255,255,.25)');
+  glow.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.beginPath(); ctx.arc(cx, cy, outerR, Math.PI, 0);
+  ctx.arc(cx, cy, innerR, 0, Math.PI, true); ctx.closePath();
+  ctx.fillStyle = glow; ctx.fill();
+
+  // 5. Glass highlight
+  const glass = ctx.createLinearGradient(0, cy - outerR, 0, cy);
+  glass.addColorStop(0, 'rgba(255,255,255,.4)');
+  glass.addColorStop(0.3, 'rgba(255,255,255,.1)');
+  glass.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.beginPath(); ctx.arc(cx, cy, outerR, Math.PI, 0);
+  ctx.arc(cx, cy, innerR, 0, Math.PI, true); ctx.closePath();
+  ctx.fillStyle = glass; ctx.fill();
+
+  // 6. Darken unfilled portion
+  if (_gaugeNeedleAngle > 0.01) {
+    ctx.save(); ctx.beginPath();
+    ctx.arc(cx, cy, outerR + 1, _gaugeNeedleAngle, 0, true);
+    ctx.arc(cx, cy, innerR - 1, 0, _gaugeNeedleAngle, false);
+    ctx.closePath(); ctx.fillStyle = 'rgba(0,0,0,0.8)'; ctx.fill(); ctx.restore();
+  }
+
+  // Rims
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx, cy, outerR, Math.PI, 0);
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 1.5; ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx, cy, innerR, Math.PI, 0);
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.restore();
+
+  // Tick marks
+  const ticks = [
+    {v:0, l:'0'}, {v:MAJORITY, l:'138', c:'#fbbf24'},
+    {v:TWO_THIRDS, l:'184', c:'#4ade80'}, {v:275, l:'275'}
+  ];
+  ticks.forEach(t => {
+    const a = seatToAngle(t.v);
+    const r1 = outerR + 2, r2 = outerR + 16;
+    ctx.beginPath();
+    ctx.moveTo(cx + r1*Math.cos(a), cy - r1*Math.sin(a));
+    ctx.lineTo(cx + r2*Math.cos(a), cy - r2*Math.sin(a));
+    ctx.strokeStyle = t.c || 'rgba(255,255,255,.4)'; ctx.lineWidth = 2; ctx.stroke();
+    const lx = cx + (r2+12)*Math.cos(a), ly = cy - (r2+12)*Math.sin(a);
+    ctx.font = `bold ${Math.max(10, w*0.035)}px system-ui`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = t.c || 'rgba(255,255,255,.7)';
+    ctx.fillText(t.l, lx, ly);
+  });
+
+  // Needle with vibration
+  const vibAmt = 0.01 + Math.abs(_gaugeNeedleAngle - _gaugeTargetAngle) * 0.1;
+  const vib = Math.sin(_gaugeVibPhase) * vibAmt;
+  const angle = _gaugeNeedleAngle + vib;
+  const len = outerR + 6, tail = 18;
+  const tipX = cx + len*Math.cos(angle), tipY = cy - len*Math.sin(angle);
+  const tailX = cx - tail*Math.cos(angle), tailY = cy + tail*Math.sin(angle);
+  const perpX = Math.sin(angle)*4, perpY = Math.cos(angle)*4;
+
+  ctx.beginPath(); ctx.moveTo(tipX, tipY);
+  ctx.lineTo(tailX+perpX, tailY+perpY); ctx.lineTo(tailX-perpX, tailY-perpY); ctx.closePath();
+  const needleGrad = ctx.createLinearGradient(tailX, tailY, tipX, tipY);
+  needleGrad.addColorStop(0, '#444'); needleGrad.addColorStop(0.5, '#e11d48'); needleGrad.addColorStop(1, '#ff6b6b');
+  ctx.fillStyle = needleGrad; ctx.fill();
+
+  // Arrow head
+  ctx.beginPath(); ctx.moveTo(tipX, tipY);
+  ctx.lineTo(tipX - 8*Math.cos(angle-0.3), tipY + 8*Math.sin(angle-0.3));
+  ctx.lineTo(tipX - 8*Math.cos(angle+0.3), tipY + 8*Math.sin(angle+0.3));
+  ctx.closePath(); ctx.fillStyle = '#ff3b3b'; ctx.fill();
+
+  // Center cap
+  ctx.beginPath(); ctx.arc(cx, cy, 10, 0, Math.PI*2);
+  const cap = ctx.createRadialGradient(cx-2, cy-2, 1, cx, cy, 10);
+  cap.addColorStop(0, '#aaa'); cap.addColorStop(0.5, '#444'); cap.addColorStop(1, '#111');
+  ctx.fillStyle = cap; ctx.fill();
+
+  // Floating pill label at needle tip
+  const seats = _gaugeSeats;
+  let statusText, statusColor;
+  if (seats >= TWO_THIRDS) { statusText = 'SUPERMAJORITY'; statusColor = '#22c55e'; }
+  else if (seats >= MAJORITY) { statusText = 'MAJORITY ✓'; statusColor = '#22c55e'; }
+  else { statusText = `${MAJORITY - seats} TO GO`; statusColor = '#f59e0b'; }
+
+  const labelDist = len + 28;
+  const labelX = cx + labelDist*Math.cos(angle), labelY = cy - labelDist*Math.sin(angle);
+  const bigFont = Math.max(14, w*0.046), smallFont = Math.max(7, w*0.02);
+  ctx.save();
+  ctx.font = `900 ${bigFont}px Inter,sans-serif`;
+  const numW = ctx.measureText(String(seats)).width;
+  ctx.font = `600 ${smallFont}px Inter,sans-serif`;
+  const stW = ctx.measureText(statusText).width;
+  const pillW = Math.max(numW, stW) + 22, pillH = bigFont + smallFont + 12;
+  let pillX = Math.max(4, Math.min(w-pillW-4, labelX - pillW/2));
+  let pillY = Math.max(4, Math.min(h-pillH-4, labelY - pillH/2));
+
+  ctx.save(); ctx.shadowColor = statusColor; ctx.shadowBlur = 16;
+  ctx.beginPath(); ctx.roundRect(pillX, pillY, pillW, pillH, 9);
+  ctx.fillStyle = 'rgba(15,17,23,0.93)'; ctx.fill(); ctx.restore();
+  ctx.beginPath(); ctx.roundRect(pillX, pillY, pillW, pillH, 9);
+  ctx.fillStyle = 'rgba(15,17,23,0.93)'; ctx.fill();
+  ctx.strokeStyle = statusColor; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.6; ctx.stroke(); ctx.globalAlpha = 1;
+  ctx.font = `900 ${bigFont}px Inter,sans-serif`; ctx.fillStyle = statusColor;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.fillText(String(seats), pillX+pillW/2, pillY+5);
+  ctx.font = `700 ${smallFont}px Inter,sans-serif`; ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.fillText(statusText, pillX+pillW/2, pillY+bigFont+5);
+  ctx.restore();
+
+  // Connector line
+  ctx.save(); ctx.beginPath(); ctx.setLineDash([2,3]);
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 1;
+  ctx.moveTo(tipX, tipY); ctx.lineTo(pillX+pillW/2, pillY+pillH); ctx.stroke(); ctx.restore();
+}
+
+function _animateGauge() {
+  function step() {
+    const diff = _gaugeTargetAngle - _gaugeNeedleAngle;
+    if (Math.abs(diff) > 0.001) _gaugeNeedleAngle += diff * 0.05;
+    else _gaugeNeedleAngle = _gaugeTargetAngle;
+    _gaugeVibPhase += 0.35;
+    _drawGaugeFrame();
+    _gaugeAnimFrame = requestAnimationFrame(step);
+  }
+  step();
 }
 
 // Hemicycle tooltip
