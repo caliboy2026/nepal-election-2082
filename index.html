@@ -208,6 +208,8 @@
     .hot-grid,.provinces-grid{grid-template-columns:1fr}
     .summary-strip{grid-template-columns:repeat(2,1fr)}
     .search-input{font-size:0.85rem;padding:12px 16px 12px 42px}
+    .geo-nav select{min-width:100%;flex-basis:100%}
+    .geo-clear{width:100%;text-align:center}
   }
 </style>
 </head>
@@ -273,7 +275,7 @@
       <div class="summary-card"><div class="label">Results Declared</div><div class="value" id="declaredCount" style="color:var(--green)">0</div><div class="sub">of 165 FPTP seats</div></div>
       <div class="summary-card"><div class="label">Voter Turnout</div><div class="value">~63%</div><div class="sub">of 18.9M registered</div></div>
       <div class="summary-card"><div class="label">Candidates</div><div class="value">3,487</div><div class="sub">from 68 parties</div></div>
-      <div class="summary-card"><div class="label">Counting</div><div class="value" id="countingPct">32%</div><div class="sub">booths reporting</div></div>
+      <div class="summary-card"><div class="label">Reporting</div><div class="value" id="reportingCount" style="color:var(--blue)">0</div><div class="sub">of 165 constituencies</div></div>
     </div>
 
     <!-- Seat Visualization Bar -->
@@ -1183,6 +1185,28 @@ function renderPartyTable() {
   document.getElementById('declaredCount').textContent = declared;
 }
 
+// Recompute province results dynamically from live constituency data
+function updateProvinceResults() {
+  let reporting = 0;
+  for (const prov of PROVINCES) {
+    prov.results = {};  // Reset — recompute from scratch
+  }
+  for (const c of ALL_CONSTITUENCIES) {
+    if (!c.candidates || c.candidates.length === 0) continue;
+    const sorted = [...c.candidates].sort((a, b) => b.votes - a.votes);
+    const leader = sorted[0];
+    if (!leader || leader.votes <= 0) continue;
+    reporting++;
+    const prov = PROVINCES.find(p => p.name === c.province);
+    if (prov) {
+      prov.results[leader.party] = (prov.results[leader.party] || 0) + 1;
+    }
+  }
+  // Update reporting count in summary strip
+  const el = document.getElementById('reportingCount');
+  if (el) el.textContent = reporting;
+}
+
 function renderProvinces() {
   const grid = document.getElementById('provincesGrid');
   grid.innerHTML = PROVINCES.map(prov => {
@@ -1223,59 +1247,59 @@ function renderProjection() {
   // Gather current data from PARTIES
   const partyData = Object.entries(PARTIES)
     .map(([key, p]) => {
-      const total = (p.won || 0) + (p.leading || 0);
+      const won = p.won || 0;
+      const leading = p.leading || 0;
       const prSeats = p.prSeats || 0;
-      return { key, ...p, total, prSeats };
+      return { key, ...p, won, leading, total: won + leading, prSeats };
     })
     .filter(p => p.total > 0 || p.prSeats > 0)
     .sort((a, b) => (b.total + b.prSeats) - (a.total + a.prSeats));
 
-  // Calculate totals
-  const totalDeclared = partyData.reduce((s, p) => s + p.total, 0);
-  const remainingFPTP = Math.max(0, TOTAL_FPTP - totalDeclared);
+  const totalWon = partyData.reduce((s, p) => s + p.won, 0);
+  const totalResults = partyData.reduce((s, p) => s + p.total, 0);
+  const remainingFPTP = Math.max(0, TOTAL_FPTP - totalResults);
 
-  // Leading party
   const leader = partyData[0];
   if (!leader) { panel.innerHTML = '<p style="color:var(--text2);text-align:center;padding:20px">Waiting for data...</p>'; return; }
 
-  // Project remaining seats based on current win rate per party
+  // CNN/AP-style projection: current leads hold + remaining distributed proportionally
   const projections = partyData.map(p => {
-    const winRate = totalDeclared > 0 ? p.total / totalDeclared : 0;
-    const projectedRemaining = Math.round(remainingFPTP * winRate);
-    const projectedDirect = p.total + projectedRemaining;
-    // PR seats from parliamentChartData if available
+    // Won (declared) + Leading (current lead holds) = projected FPTP
+    const projectedDirect = p.total;  // leads hold as-is
+    // If there are uncounted seats, distribute proportionally based on current share
+    const extraProjected = totalResults > 0 ? Math.round(remainingFPTP * (p.total / totalResults)) : 0;
+    const projectedFPTP = projectedDirect + extraProjected;
     const prSeats = p.prSeats;
-    const projectedTotal = projectedDirect + prSeats;
-    return { ...p, projectedDirect, prSeats, projectedTotal, winRate };
+    const projectedTotal = projectedFPTP + prSeats;
+    return { ...p, projectedFPTP, prSeats, projectedTotal, extraProjected };
   });
 
-  // Leader's projected total
   const leaderProj = projections[0];
   const leaderTotal = leaderProj.projectedTotal;
 
-  // Probability calculation (simplified model based on current lead strength)
-  const leaderDirectPct = totalDeclared > 0 ? leader.total / totalDeclared : 0;
-  // Majority probability: based on how far above/below the threshold
+  // Probability: based on how far the projected total is from thresholds
+  const leaderP = getParty(leader.key);
   const majProb = leaderTotal >= MAJORITY ? Math.min(99, 70 + (leaderTotal - MAJORITY) * 1.5)
     : Math.max(1, 50 - (MAJORITY - leaderTotal) * 3);
   const twoThirdProb = leaderTotal >= TWO_THIRDS ? Math.min(99, 60 + (leaderTotal - TWO_THIRDS) * 2)
     : Math.max(1, 40 - (TWO_THIRDS - leaderTotal) * 2.5);
 
-  const leaderP = getParty(leader.key);
   const fillPct = Math.min(100, leaderTotal / TOTAL_SEATS * 100);
   const majMarker = MAJORITY / TOTAL_SEATS * 100;
   const ttMarker = TWO_THIRDS / TOTAL_SEATS * 100;
 
-  // Party breakdown rows
+  // Party breakdown rows — show Won + Leading + Projected separately
   const partyRows = projections.slice(0, 6).map(p => {
     const pp = getParty(p.key);
     const barPct = Math.max(2, p.projectedTotal / TOTAL_SEATS * 100);
+    const detail = `${p.won} won · ${p.leading} leading${p.extraProjected > 0 ? ' · +' + p.extraProjected + ' proj' : ''}${p.prSeats > 0 ? ' · ' + p.prSeats + ' PR' : ''}`;
     return `<div class="proj-party-row">
       <div class="proj-party-symbol" style="background:${pp.color}22">${pp.symbol}</div>
       <div class="proj-party-name" style="color:${pp.color}">${pp.short}</div>
       <div class="proj-party-bar"><div class="proj-party-bar-fill" style="width:${barPct}%;background:${pp.color}"></div></div>
       <div class="proj-party-seats" style="color:${pp.color}">${p.projectedTotal}</div>
-    </div>`;
+    </div>
+    <div style="font-size:0.58rem;color:var(--text2);margin:-4px 0 6px 52px">${detail}</div>`;
   }).join('');
 
   panel.innerHTML = `
@@ -1285,7 +1309,7 @@ function renderProjection() {
     </div>
 
     <div style="font-size:0.72rem;color:var(--text2);margin-bottom:12px">
-      ${totalDeclared} of ${TOTAL_FPTP} FPTP seats declared · ${remainingFPTP} remaining
+      <span style="color:var(--green)">${totalWon} declared</span> · ${totalResults - totalWon} leading · ${remainingFPTP} remaining
     </div>
 
     <!-- Leader progress bar with majority/2/3 markers -->
@@ -1329,7 +1353,7 @@ function renderProjection() {
     ${partyRows}
 
     <div style="margin-top:12px;font-size:0.58rem;color:var(--text2);text-align:center;font-style:italic">
-      Projection based on current counting trends. Remaining ${remainingFPTP} FPTP seats distributed proportionally. Not an official forecast.
+      Assumes current leads hold. Remaining ${remainingFPTP} seats distributed proportionally. Not an official forecast.
     </div>
   `;
 }
@@ -1615,7 +1639,7 @@ function applyLiveData(apiData) {
   const MAX_SEATS = 165;     // Max FPTP seats any party can win/lead
   const MAX_VOTES = 200000;  // Max votes per candidate in any constituency
 
-  // Update party tallies — API is authoritative, directly set values
+  // Update party tallies — won uses high-water mark (can only increase), leading is live
   if (apiData.data.parties && Object.keys(apiData.data.parties).length > 0) {
     for (const [key, vals] of Object.entries(apiData.data.parties)) {
       if (PARTIES[key]) {
@@ -1626,8 +1650,14 @@ function applyLiveData(apiData) {
           console.warn(`[Data] REJECTED bad party data for ${key}: won=${newWon}, leading=${newLeading}`);
           continue;
         }
-        PARTIES[key].won = newWon;
-        PARTIES[key].leading = newLeading;
+        // High-water mark: won only goes up, total (won+leading) only goes up
+        const bestWon = Math.max(PARTIES[key].won, newWon);
+        const oldTotal = PARTIES[key].won + PARTIES[key].leading;
+        const newTotal = newWon + newLeading;
+        const bestTotal = Math.max(oldTotal, newTotal);
+        PARTIES[key].won = bestWon;
+        // Leading = bestTotal - bestWon (ensures total never drops)
+        PARTIES[key].leading = Math.max(0, bestTotal - bestWon);
         applied = true;
       }
     }
@@ -1894,6 +1924,7 @@ async function refreshData() {
 function renderAll() {
   updateTimestamp();
   buildWonSet();
+  updateProvinceResults();
   renderSeatBar();
   renderPartyTable();
   renderProjection();

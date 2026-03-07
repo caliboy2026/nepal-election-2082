@@ -29,6 +29,11 @@ let kvLoaded = false;        // whether we've loaded from KV this isolate
 
 // ═══ KV PERSISTENCE — survives isolate restarts ═══
 const KV_KEY = 'deepCache_v1';
+const KV_PARTY_HWM_KEY = 'partyHighWaterMark_v1';  // persists party won/total across isolate recycles
+
+// Party-level high-water marks that survive isolate restarts
+let partyHWM = {};  // { partyKey: { won: N, total: N } }
+
 async function loadFromKV(env) {
   if (kvLoaded || !env.ELECTION_CACHE) return;
   try {
@@ -41,6 +46,12 @@ async function loadFromKV(env) {
         currentBatch = stored.currentBatch || 0;
         console.log(`[KV] Loaded ${Object.keys(deepCache).length} constituencies from KV`);
       }
+    }
+    // Load party high-water marks
+    const hwmStored = await env.ELECTION_CACHE.get(KV_PARTY_HWM_KEY, 'json');
+    if (hwmStored && Object.keys(hwmStored).length > 0) {
+      partyHWM = hwmStored;
+      console.log(`[KV] Loaded party HWM for ${Object.keys(partyHWM).length} parties`);
     }
   } catch (e) {
     console.log(`[KV] Load error: ${e.message}`);
@@ -57,6 +68,10 @@ async function saveToKV(env) {
       currentBatch,
       savedAt: new Date().toISOString()
     }));
+    // Also persist party high-water marks
+    if (Object.keys(partyHWM).length > 0) {
+      await env.ELECTION_CACHE.put(KV_PARTY_HWM_KEY, JSON.stringify(partyHWM));
+    }
   } catch (e) {
     console.log(`[KV] Save error: ${e.message}`);
   }
@@ -282,29 +297,40 @@ async function quickScrapeOnlineKhabar() {
 }
 
 // ═══ QUICK SCRAPE: Alternate between NepseBajar and OnlineKhabar ═══
-// Merges results using high-water mark: won can only increase (a win can't be undeclared).
-// Leading uses the latest value since it can legitimately decrease as seats get declared.
+// Merges results using high-water mark: won and total can only increase.
+// Uses BOTH in-memory quickCache AND persistent partyHWM (survives isolate restarts).
 function mergeWithHighWaterMark(newResult) {
-  if (!quickCache || !quickCache.partySeats) return newResult;
-
   for (const [key, newData] of Object.entries(newResult.partySeats)) {
-    const prev = quickCache.partySeats[key];
-    if (prev) {
-      // Won only goes up — keep the higher value across sources
-      newData.won = Math.max(newData.won || 0, prev.won || 0);
-      // Leading: use (total from higher source) - won, so it stays consistent
-      // If new source has higher total (won+leading), trust it for leading
-      const newTotal = (newData.won || 0) + (newData.leading || 0);
-      const prevTotal = (prev.won || 0) + (prev.leading || 0);
-      if (prevTotal > newTotal) {
-        newData.leading = prevTotal - newData.won;
+    const prev = quickCache?.partySeats?.[key];
+    const hwm = partyHWM[key] || { won: 0, total: 0 };
+
+    // Get the best-known won from all sources: new scrape, in-memory cache, persistent HWM
+    const bestWon = Math.max(newData.won || 0, prev?.won || 0, hwm.won || 0);
+    const newTotal = (newData.won || 0) + (newData.leading || 0);
+    const prevTotal = prev ? ((prev.won || 0) + (prev.leading || 0)) : 0;
+    const bestTotal = Math.max(newTotal, prevTotal, hwm.total || 0);
+
+    // Won only goes up
+    newData.won = bestWon;
+    // Leading = bestTotal - bestWon (so total never drops)
+    newData.leading = Math.max(0, bestTotal - bestWon);
+
+    // Update persistent HWM
+    partyHWM[key] = { won: bestWon, total: bestTotal };
+  }
+
+  // Carry forward any parties from quickCache that the new source didn't return
+  if (quickCache?.partySeats) {
+    for (const [key, prevData] of Object.entries(quickCache.partySeats)) {
+      if (!newResult.partySeats[key]) {
+        newResult.partySeats[key] = prevData;
       }
     }
   }
-  // Carry forward any parties that the new source didn't return
-  for (const [key, prevData] of Object.entries(quickCache.partySeats)) {
-    if (!newResult.partySeats[key]) {
-      newResult.partySeats[key] = prevData;
+  // Also carry forward from HWM (covers isolate restart case)
+  for (const [key, hwm] of Object.entries(partyHWM)) {
+    if (!newResult.partySeats[key] && hwm.won > 0) {
+      newResult.partySeats[key] = { won: hwm.won, leading: Math.max(0, (hwm.total || 0) - hwm.won) };
     }
   }
 
@@ -594,7 +620,7 @@ export default {
     // ?status=true → return cache status for debugging
     if (params.status) {
       return jsonResponse({
-        version: 'v3.2-cf-dual-source',
+        version: 'v3.3-cf-dual-source-hwm-persist',
         deepCached: Object.keys(deepCache).length,
         kvAvailable: !!env.ELECTION_CACHE,
         totalConstituencies: TOTAL_CONSTITUENCIES,
