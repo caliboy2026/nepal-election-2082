@@ -1148,22 +1148,32 @@ function updateSearchStatus() {
   }
   if (hasSearch) {
     const q = searchQuery.toLowerCase();
-    const qNorm = q.replace(/[.\-–—']/g, '');
-    const normalize = s => s.toLowerCase().replace(/[.\-–—']/g, '');
+    const normalize = s => s.toLowerCase().replace(/[.\-–—'\s]/g, '');
+    const qNorm = normalize(q);
+    // Match parties
     const matchedParties = Object.entries(PARTIES).filter(([k,p]) => {
       const raw = `${p.name} ${p.short} ${p.nepali}`.toLowerCase();
       return raw.includes(q) || normalize(raw).includes(qNorm);
     });
+    // Match candidates
     const matchedCandNames = new Set();
     ALL_CONSTITUENCIES.forEach(c => c.candidates.forEach(cand => {
       const raw = `${cand.name} ${cand.aka||''}`.toLowerCase();
       if (raw.includes(q) || normalize(raw).includes(qNorm)) matchedCandNames.add(cand.name);
     }));
+    // Match constituencies
+    const matchedConsts = ALL_CONSTITUENCIES.filter(c => {
+      const name = c.name.toLowerCase();
+      return name.includes(q) || normalize(c.name).includes(qNorm);
+    });
     matchedParties.forEach(([,p]) => {
       tags += `<span class="search-tag party-tag">${p.symbol} ${p.short}</span>`;
     });
     matchedCandNames.forEach(name => {
       tags += `<span class="search-tag cand-tag">${name}</span>`;
+    });
+    matchedConsts.forEach(c => {
+      tags += `<span class="search-tag const-tag">${c.name}</span>`;
     });
   }
   tagsEl.innerHTML = tags;
@@ -1232,12 +1242,21 @@ function formatNum(n) { return n.toLocaleString(); }
 
 function highlightText(text, query) {
   if (!query || query.length < 2) return text;
-  const terms = query.toLowerCase().split(/\s+/);
+  const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   let result = text;
-  terms.forEach(term => {
-    const regex = new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi');
-    result = result.replace(regex, '<span class="match-hl">$1</span>');
-  });
+  // Try full query first (treat hyphens and spaces as interchangeable)
+  const flexPattern = esc(query).replace(/[\s\-]+/g, '[\\s\\-]*');
+  const fullRegex = new RegExp(`(${flexPattern})`, 'gi');
+  if (fullRegex.test(text)) {
+    result = text.replace(fullRegex, '<span class="match-hl">$1</span>');
+  } else {
+    // Fallback: highlight individual terms
+    query.split(/\s+/).forEach(term => {
+      if (term.length < 2) return;
+      const regex = new RegExp(`(${esc(term)})`, 'gi');
+      result = result.replace(regex, '<span class="match-hl">$1</span>');
+    });
+  }
   return result;
 }
 
@@ -1422,25 +1441,29 @@ function renderProjection() {
 
   if (!partyData.length) return;
 
-  // Project FPTP: won+leading + proportional distribution of remaining
+  // Project FPTP: simply won + leading from the tally (the real data, no extrapolation)
   const projections = partyData.map(p => {
-    const projectedFPTP = p.total + (totalResults > 0 ? Math.round(remainingFPTP * (p.total / totalResults)) : 0);
+    const projectedFPTP = p.total; // won + leading — already computed above
     return {...p, projectedFPTP, projectedPR: 0, projectedTotal: projectedFPTP};
   });
 
-  // Fix FPTP rounding to exactly 165
-  let fptpSum = projections.reduce((s,p) => s+p.projectedFPTP, 0);
-  if (fptpSum !== TOTAL_FPTP && projections.length) projections[0].projectedFPTP += (TOTAL_FPTP - fptpSum);
-
-  // PR seats via D'Hondt method using actual samanupatik vote counts
-  const prVoteData = partyData.filter(p => (p.prVoteCount || 0) > 0);
-  const totalPRVotes = prVoteData.reduce((s,p) => s + p.prVoteCount, 0);
+  // PR seats via D'Hondt method using ALL samanupatik vote counts (including minor parties)
+  // _allPRVotes has every party's PR votes, not just those in PARTIES
+  const allVotes = window._allPRVotes || {};
+  const allPREntries = Object.entries(allVotes).filter(([k, v]) => v > 0).map(([k, v]) => ({key: k, prVoteCount: v}));
+  // Also include any partyData that might have prVoteCount not yet in _allPRVotes
+  for (const p of partyData) {
+    if ((p.prVoteCount || 0) > 0 && !allVotes[p.key]) {
+      allPREntries.push({key: p.key, prVoteCount: p.prVoteCount});
+    }
+  }
+  const totalPRVotes = allPREntries.reduce((s,p) => s + p.prVoteCount, 0);
   let prMethod;
 
   if (totalPRVotes > 0) {
     // D'Hondt allocation with 3% threshold
     const threshold = totalPRVotes * 0.03;
-    const eligible = prVoteData.filter(p => p.prVoteCount >= threshold);
+    const eligible = allPREntries.filter(p => p.prVoteCount >= threshold);
 
     if (eligible.length > 0) {
       // Build quotient table
@@ -1459,11 +1482,16 @@ function renderProjection() {
         prAlloc[quotients[i].key]++;
       }
 
-      // Apply to projections
+      // Apply to projections (minor parties not in projections won't show in table, that's fine)
       for (const proj of projections) {
         proj.projectedPR = prAlloc[proj.key] || 0;
       }
       prMethod = "PR via D'Hondt (samanupatik votes, 3% threshold)";
+      console.log('[D\'Hondt] Total PR votes:', totalPRVotes.toLocaleString(), '| 3% threshold:', Math.round(threshold).toLocaleString(), '| Parties with votes:', allPREntries.length);
+      console.log('[D\'Hondt] Eligible parties:', eligible.map(p => `${p.key}: ${p.prVoteCount.toLocaleString()} (${(p.prVoteCount/totalPRVotes*100).toFixed(1)}%)`));
+      console.log('[D\'Hondt] Allocation:', JSON.stringify(prAlloc));
+      const ineligible = allPREntries.filter(p => p.prVoteCount < threshold);
+      if (ineligible.length) console.log('[D\'Hondt] Below threshold:', ineligible.map(p => `${p.key}: ${p.prVoteCount.toLocaleString()} (${(p.prVoteCount/totalPRVotes*100).toFixed(1)}%)`));
     } else {
       // No party meets threshold — fallback to FPTP ratio
       for (const proj of projections) {
@@ -1486,25 +1514,25 @@ function renderProjection() {
     prMethod = 'PR projected from FPTP share (no PR vote data yet)';
   }
 
-  // Fix PR rounding to exactly 110
-  let prSum = projections.reduce((s,p) => s+p.projectedPR, 0);
-  if (prSum !== TOTAL_PR && projections.length) projections[0].projectedPR += (TOTAL_PR - prSum);
+  // Fix PR rounding to exactly 110 — only for fallback methods (D'Hondt is already exact)
+  // Note: with D'Hondt, minor parties not in projections may hold some seats,
+  // so projections sum may be < 110. That's correct — don't inflate.
+  if (prMethod && !prMethod.includes("D'Hondt")) {
+    let prSum = projections.reduce((s,p) => s+p.projectedPR, 0);
+    if (prSum !== TOTAL_PR && projections.length) projections[0].projectedPR += (TOTAL_PR - prSum);
+  }
 
   // Calculate totals — use source totalSeats when available (more accurate
   // than won+leading which can differ between OnlineKhabar and NepseBajar)
   projections.forEach(p => { p.projectedTotal = p.projectedFPTP + p.projectedPR; });
 
-  // HIGH-WATER MARK: projected FPTP and total can NEVER decrease across refreshes
+  // HIGH-WATER MARK: projected total (FPTP+PR) can NEVER decrease across refreshes
+  // FPTP is now direct from tally (won+leading), so HWM only guards the combined total
   if (!window._projHWM) window._projHWM = {};
   projections.forEach(p => {
     const prev = window._projHWM[p.key];
     if (prev) {
-      p.projectedFPTP = Math.max(p.projectedFPTP, prev.fptp);
       p.projectedTotal = Math.max(p.projectedTotal, prev.total);
-      // If total was boosted by HWM but FPTP wasn't enough, reconcile
-      if (p.projectedFPTP + p.projectedPR < p.projectedTotal) {
-        p.projectedFPTP = p.projectedTotal - p.projectedPR;
-      }
     }
     window._projHWM[p.key] = { fptp: p.projectedFPTP, total: p.projectedTotal };
   });
@@ -2045,11 +2073,23 @@ function getFilteredConstituencies(tabId) {
       }
       // Search filter
       if (match && searchQuery && searchQuery.length >= 2) {
-        const terms = searchQuery.toLowerCase().split(/\s+/);
+        const q = searchQuery.toLowerCase();
+        const qNorm = normalize(q);
         const raw = `${c.name} ${c.province||''} ${c.candidates.map(x=>`${x.name} ${x.aka||''} ${x.party}`).join(' ')}`.toLowerCase();
         const norm = normalize(raw);
-        if (!terms.every(t => raw.includes(t) || norm.includes(normalize(t)))) {
-          match = false;
+        const constName = c.name.toLowerCase();
+        const constNorm = normalize(c.name);
+        // First: check if full query matches constituency name (exact/partial)
+        // This ensures "Jhapa-3" or "Jhapa 3" only matches Jhapa-3, not all Jhapa
+        // Strip all spaces too so "Jhapa 3" matches "Jhapa-3" (both become "jhapa3")
+        const stripAll = s => normalize(s).replace(/\s+/g, '');
+        const nameMatch = constName.includes(q) || constNorm.includes(qNorm) || stripAll(c.name).includes(stripAll(searchQuery));
+        if (!nameMatch) {
+          // Fallback: check all terms against full text (name + candidates + province)
+          const terms = q.split(/\s+/);
+          if (!terms.every(t => raw.includes(t) || norm.includes(normalize(t)))) {
+            match = false;
+          }
         }
       }
       c._match = match;
@@ -2308,8 +2348,11 @@ function applyLiveData(apiData) {
   }
 
   // Update PR vote counts (samanupatik) for D'Hondt calculation
+  // Store ALL parties' votes (not just PARTIES keys) — D'Hondt needs the full picture
+  if (!window._allPRVotes) window._allPRVotes = {};
   if (apiData.data.prVotes && Object.keys(apiData.data.prVotes).length > 0) {
     for (const [key, votes] of Object.entries(apiData.data.prVotes)) {
+      window._allPRVotes[key] = Math.max(window._allPRVotes[key] || 0, votes);
       if (PARTIES[key]) {
         PARTIES[key].prVoteCount = Math.max(PARTIES[key].prVoteCount || 0, votes);
       }
@@ -2426,6 +2469,7 @@ function cacheDataToStorage() {
     }
     // Persist projection HWM so FPTP can never drop even after page reload
     if (window._projHWM) snapshot.projHWM = window._projHWM;
+    if (window._allPRVotes) snapshot.allPRVotes = window._allPRVotes;
     localStorage.setItem('nepal_election_2082_v2', JSON.stringify(snapshot));
     console.log('[Cache] Saved live data to localStorage');
   } catch (e) { console.warn('[Cache] Could not save:', e.message); }
@@ -2494,6 +2538,10 @@ function loadCachedData() {
     if (cache.projHWM) {
       window._projHWM = cache.projHWM;
       console.log('[Cache] Restored projection HWM:', JSON.stringify(cache.projHWM));
+    }
+    if (cache.allPRVotes) {
+      window._allPRVotes = cache.allPRVotes;
+      console.log('[Cache] Restored all PR votes:', JSON.stringify(cache.allPRVotes));
     }
     return true;
   } catch (e) { console.warn('[Cache] Could not load:', e.message); return false; }
