@@ -1402,7 +1402,7 @@ function _buildProvWaffle(prov) {
     for (let i = 0; i < seats; i++) cells.push(`<div class="waffle-cell" style="background:${p.color};${hl}" title="${p.short||party}"></div>`);
   });
   for (let i = cells.length; i < prov.seats; i++) cells.push('<div class="waffle-cell empty"></div>');
-  const cols = prov.seats <= 16 ? 8 : prov.seats <= 20 ? 10 : prov.seats <= 28 ? 10 : 11;
+  const cols = 11; // uniform grid across all provinces
   const legend = entries.map(([party, seats]) => {
     const p = getParty(party);
     return `<div class="waffle-legend-item"><div class="waffle-legend-dot" style="background:${p.color}"></div>${p.short||party} ${seats}</div>`;
