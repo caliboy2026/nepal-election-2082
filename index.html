@@ -38,7 +38,7 @@
   .search-input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(220,20,60,0.15); }
   .search-input::placeholder { color:var(--text2); }
   .search-icon { position:absolute; left:16px; top:50%; transform:translateY(-50%); color:var(--text2); pointer-events:none; }
-  .search-clear { position:absolute; right:16px; top:50%; transform:translateY(-50%); background:var(--bg3); border:none; color:var(--text2); width:24px; height:24px; border-radius:50%; cursor:pointer; font-size:0.8rem; display:none; align-items:center; justify-content:center; transition:all 0.2s; }
+  .search-clear { position:absolute; right:12px; top:50%; transform:translateY(-50%); background:var(--bg3); border:none; color:var(--text2); width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:1rem; display:none; align-items:center; justify-content:center; transition:all 0.2s; }
   .search-clear:hover { background:var(--accent); color:#fff; }
   .search-clear.visible { display:flex; }
   .search-status { margin-top:10px; padding:10px 16px; background:rgba(59,130,246,0.08); border:1px solid rgba(59,130,246,0.2); border-radius:10px; display:none; align-items:center; justify-content:space-between; font-size:0.78rem; }
@@ -1174,6 +1174,14 @@ document.getElementById('searchInput').addEventListener('input', function(e) {
   const q = e.target.value.trim();
   clearTimeout(searchDebounce);
 
+  // Show/hide X button immediately based on whether there's text
+  const clearBtn = document.getElementById('searchClear');
+  if (q.length > 0) {
+    clearBtn.classList.add('visible');
+  } else {
+    clearBtn.classList.remove('visible');
+  }
+
   searchDebounce = setTimeout(() => {
     if (q.length >= 2) {
       searchQuery = q;
@@ -1197,7 +1205,6 @@ document.getElementById('searchInput').addEventListener('input', function(e) {
       searchQuery = '';
       partyFilter = '';
       activeTab = 'none';
-      document.getElementById('searchClear').classList.remove('visible');
     }
     renderAll();
   }, 200);
@@ -2131,11 +2138,18 @@ function renderConstituencies() {
     return;
   }
 
-  grid.innerHTML = data.map(c => {
+  // When filtering, only show matching results (hide non-matches completely)
+  const displayData = hasFilter ? data.filter(c => c._match) : data;
+
+  if (hasFilter && displayData.length === 0) {
+    grid.innerHTML = `<div class="no-results"><div class="big">🔍</div>No matching results found.<br>Try a different search or filter.</div>`;
+    return;
+  }
+
+  grid.innerHTML = displayData.map(c => {
     const maxVotes = Math.max(...c.candidates.map(x=>x.votes));
     const totalVotes = c.candidates.reduce((s,x)=>s+x.votes,0);
     const isMatch = hasFilter && c._match;
-    const isDimmed = hasFilter && !c._match;
 
     // When party filter active: show only that party's candidate by default
     // with a toggle to expand and see all candidates
@@ -2196,7 +2210,7 @@ function renderConstituencies() {
       statusBadge = '<span style="display:inline-block;background:#f59e0b22;color:#f59e0b;font-size:0.65rem;font-weight:700;padding:2px 8px;border-radius:4px;margin-left:6px">⚡ PROJECTED</span>';
     }
 
-    return `<div class="hot-card ${isMatch?'search-match':''} ${isDimmed?'dimmed':''}" id="card-${cardId}">
+    return `<div class="hot-card ${isMatch?'search-match':''}" id="card-${cardId}">
       <button class="pin-btn ${isPinned(c.name)?'pinned':''}" onclick="event.stopPropagation();togglePin('${c.name.replace(/'/g,"\\'")}')" title="${isPinned(c.name)?'Unpin':'Pin'} ${c.name}">⭐</button>
       <div class="constituency-name">${highlightText(c.name, searchQuery)}${statusBadge}</div>
       ${rows}
