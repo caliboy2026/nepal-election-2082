@@ -282,6 +282,16 @@ async function quickScrapeOnlineKhabar() {
   if (json.status === 200 && json.data && json.data.party_results) {
     for (const p of json.data.party_results) {
       const key = OK_SLUG_MAP[p.party_slug] || normalizePartyByName(p.party_name || '');
+
+      // PR (samanupatik) vote counts — collect from ALL parties for accurate D'Hondt threshold
+      // Use party slug as key for unmapped parties so their votes still count in the total
+      const prVoteCount = parseInt(p.samanupatik) || 0;
+      if (prVoteCount > 0) {
+        const prKey = key === 'OTH' ? `_${p.party_slug}` : key;
+        result.prVotes[prKey] = prVoteCount;
+      }
+
+      // Seat tallies — only for mapped parties
       if (key === 'OTH') continue;
       result.partySeats[key] = {
         total: p.total_seat || 0,
@@ -290,11 +300,6 @@ async function quickScrapeOnlineKhabar() {
         leading: p.leading_count || 0,
         won: p.winner_count || 0
       };
-      // PR (samanupatik) vote counts for D'Hondt calculation
-      const prVoteCount = parseInt(p.samanupatik) || 0;
-      if (prVoteCount > 0) {
-        result.prVotes[key] = prVoteCount;
-      }
     }
   }
 
