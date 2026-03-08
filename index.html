@@ -1526,16 +1526,8 @@ function renderProjection() {
   // than won+leading which can differ between OnlineKhabar and NepseBajar)
   projections.forEach(p => { p.projectedTotal = p.projectedFPTP + p.projectedPR; });
 
-  // HIGH-WATER MARK: projected total (FPTP+PR) can NEVER decrease across refreshes
-  // FPTP is now direct from tally (won+leading), so HWM only guards the combined total
-  if (!window._projHWM) window._projHWM = {};
-  projections.forEach(p => {
-    const prev = window._projHWM[p.key];
-    if (prev) {
-      p.projectedTotal = Math.max(p.projectedTotal, prev.total);
-    }
-    window._projHWM[p.key] = { fptp: p.projectedFPTP, total: p.projectedTotal };
-  });
+  // No HWM on projections — FPTP is direct from tally (won+leading),
+  // PR is from D'Hondt on live vote counts. Both reflect real data, not extrapolations.
 
   projections.sort((a,b) => b.projectedTotal - a.projectedTotal);
 
@@ -1544,15 +1536,15 @@ function renderProjection() {
   const leaderP = getParty(leaderProj.key);
 
   // Probability gauges
-  // Factor in: (a) margin above threshold, (b) how settled the election is
-  const leaderWon = leaderProj.won + (leaderProj.knownPR || 0);
+  // "Confirmed" = FPTP tally (won+leading) + D'Hondt PR (all based on real data)
+  const leaderConfirmed = leaderProj.projectedFPTP + leaderProj.projectedPR;
   const declaredRatio = Math.min(1, (totalResults + totalKnownPR) / TOTAL_SEATS); // 0→1 as results come in
   const certaintyBoost = declaredRatio * 25; // up to 25% boost when fully declared
 
-  const majProb = leaderWon >= MAJORITY ? 100 :
+  const majProb = leaderConfirmed >= MAJORITY ? 100 :
     leaderTotal >= MAJORITY ? Math.min(99, 70 + (leaderTotal-MAJORITY)*1.5 + certaintyBoost) :
     Math.max(1, 50 - (MAJORITY-leaderTotal)*3);
-  const ttProb = leaderWon >= TWO_THIRDS ? 100 :
+  const ttProb = leaderConfirmed >= TWO_THIRDS ? 100 :
     leaderTotal >= TWO_THIRDS ? Math.min(99, 60 + (leaderTotal-TWO_THIRDS)*2 + certaintyBoost) :
     Math.max(1, 40 - (TWO_THIRDS-leaderTotal)*2.5);
 
@@ -2467,8 +2459,6 @@ function cacheDataToStorage() {
     for (const [k, p] of Object.entries(PARTIES)) {
       snapshot.parties[k] = { won: p.won, leading: p.leading, prSeats: p.prSeats || 0, prVoteCount: p.prVoteCount || 0, totalSeats: p.totalSeats || 0 };
     }
-    // Persist projection HWM so FPTP can never drop even after page reload
-    if (window._projHWM) snapshot.projHWM = window._projHWM;
     if (window._allPRVotes) snapshot.allPRVotes = window._allPRVotes;
     localStorage.setItem('nepal_election_2082_v2', JSON.stringify(snapshot));
     console.log('[Cache] Saved live data to localStorage');
@@ -2535,10 +2525,6 @@ function loadCachedData() {
     }
     console.log(`[Cache] Loaded cached data from ${cache.timestamp}`);
     // Restore projection HWM so FPTP can never drop after page reload
-    if (cache.projHWM) {
-      window._projHWM = cache.projHWM;
-      console.log('[Cache] Restored projection HWM:', JSON.stringify(cache.projHWM));
-    }
     if (cache.allPRVotes) {
       window._allPRVotes = cache.allPRVotes;
       console.log('[Cache] Restored all PR votes:', JSON.stringify(cache.allPRVotes));
