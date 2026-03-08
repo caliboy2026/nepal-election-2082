@@ -1525,13 +1525,14 @@ function renderProjection() {
     ` &nbsp;|&nbsp; PR: ${totalKnownPR > 0 ? totalKnownPR+' allocated' : 'projected'} of ${TOTAL_PR}` +
     ` &nbsp;|&nbsp; <span style="color:${leaderP.color};font-weight:700">${leaderP.symbol} ${leaderProj.short}: ${leaderTotal} projected</span>`;
 
-  // Update RSP summary boxes
-  const rspProj = projections.find(p => p.key === 'RSP');
-  if (rspProj) {
-    document.getElementById('rspProjFPTP').textContent = rspProj.projectedFPTP;
-    document.getElementById('rspProjPR').textContent = rspProj.projectedPR;
-    document.getElementById('rspProjTotal').textContent = rspProj.projectedTotal;
-    const prVotes = PARTIES.RSP?.prVoteCount || 0;
+  // Update RSP summary boxes — direct from PARTIES, simple and reliable
+  if (PARTIES.RSP) {
+    const rspFPTP = (PARTIES.RSP.won || 0) + (PARTIES.RSP.leading || 0);
+    const rspPR = (projections.find(p => p.key === 'RSP') || {}).projectedPR || 0;
+    document.getElementById('rspProjFPTP').textContent = rspFPTP;
+    document.getElementById('rspProjPR').textContent = rspPR;
+    document.getElementById('rspProjTotal').textContent = rspFPTP + rspPR;
+    const prVotes = PARTIES.RSP.prVoteCount || 0;
     document.getElementById('rspPRVotes').textContent = prVotes > 0 ? prVotes.toLocaleString() : '—';
   }
 
