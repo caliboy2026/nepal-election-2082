@@ -64,8 +64,8 @@
   .summary-card .label { font-size:0.6rem; color:var(--text2); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:3px; }
   .summary-card .value { font-size:1.35rem; font-weight:800; letter-spacing:-0.02em; }
   .summary-card .sub { font-size:0.6rem; color:var(--text2); margin-top:2px; }
-  @keyframes rspPulse { 0%,100%{box-shadow:0 0 4px rgba(33,150,243,0.2)} 50%{box-shadow:0 0 16px rgba(33,150,243,0.5)} }
-  .rsp-total-pulse { animation:rspPulse 2s ease-in-out infinite; }
+  @keyframes rspPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.6;transform:scale(1.08)} }
+  .rsp-total-pulse .value { animation:rspPulse 2s ease-in-out infinite; display:inline-block; }
 
   .section-title { font-size:0.95rem; font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
   .party-tally { background:var(--bg2); border:1px solid var(--border); border-radius:16px; padding:18px; margin-bottom:22px; overflow-x:auto; }
