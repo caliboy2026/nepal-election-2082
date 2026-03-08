@@ -213,7 +213,7 @@
   .gauge-wrap canvas { width:100%; height:100%; display:block; }
   .gauge-labels { display:flex; justify-content:space-between; padding:4px 16px 0; font-size:0.55rem; color:var(--text2); max-width:360px; margin:0 auto; }
   .hemi-legend { display:flex; flex-wrap:wrap; gap:5px 12px; justify-content:center; }
-  .hemi-legend-item { display:flex; align-items:center; gap:4px; font-size:0.65rem; color:var(--text2); }
+  .hemi-legend-item { display:flex; align-items:center; gap:4px; font-size:0.65rem; color:var(--text2); transition:opacity 0.2s; }
   .hemi-legend-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
   .hemi-legend-item .hl-count { font-weight:700; color:var(--text); }
   @media(max-width:768px) { .hemicycle-wrap { aspect-ratio:2/0.9; } .hemi-center .big-num { font-size:1.2rem; } .gauge-wrap { max-width:280px; } }
@@ -1419,12 +1419,14 @@ function renderProjection() {
       <div class="prob-detail">Need ${TWO_THIRDS} of ${TOTAL_SEATS}</div>
     </div>`;
 
-  // Legend
+  // Legend with hover highlight
   document.getElementById('hemiLegend').innerHTML = projections
     .filter(p => p.projectedTotal > 0)
     .map(p => {
       const pp = getParty(p.key);
-      return `<div class="hemi-legend-item">
+      return `<div class="hemi-legend-item" data-party="${p.key}" style="cursor:pointer"
+        onmouseenter="_hemiHighlight='${p.key}';_redrawHemiHighlight('${p.key}');this.style.opacity='1';document.querySelectorAll('.hemi-legend-item').forEach(el=>{if(el.dataset.party!=='${p.key}')el.style.opacity='0.3'})"
+        onmouseleave="_hemiHighlight=null;_redrawHemiHighlight(null);document.querySelectorAll('.hemi-legend-item').forEach(el=>el.style.opacity='1')">
         <div class="hemi-legend-dot" style="background:${pp.color}"></div>
         ${pp.symbol} ${pp.short}: <span class="hl-count">${p.projectedTotal}</span>
         <span style="opacity:0.5;font-size:0.55rem">(${p.projectedFPTP}F+${p.projectedPR}P)</span>
@@ -1460,7 +1462,7 @@ function renderProjection() {
     const arcLen = Math.PI * radius;
     const dotSize = gap - gap * 0.18;
     const count = Math.floor(arcLen / (dotSize * 1.15));
-    rowInfo.push({radius, dotSize: (gap - gap * 0.18) / 2 * 0.72, rawCount: count});
+    rowInfo.push({radius, dotSize: (gap - gap * 0.18) / 2 * 0.88, rawCount: count});
     totalSlots += count;
   }
   const scale = 275 / totalSlots;
@@ -1517,17 +1519,48 @@ function renderProjection() {
   ctx.fillStyle = 'rgba(245,197,66,0.5)'; ctx.textAlign = 'center';
   ctx.fillText('138', cx + (maxR+14)*Math.cos(majAngle), cy - (maxR+14)*Math.sin(majAngle)); ctx.restore();
 
-  // Draw seats
-  for (const seat of _hemiSeats) {
-    ctx.beginPath(); ctx.arc(seat.x, seat.y, seat.r, 0, Math.PI * 2); ctx.fillStyle = seat.color; ctx.fill();
-    if (seat.key !== 'REM') {
-      ctx.save(); ctx.beginPath(); ctx.arc(seat.x, seat.y, seat.r, Math.PI, 0);
-      ctx.fillStyle = 'rgba(255,255,255,0.1)'; ctx.fill(); ctx.restore();
-    }
-  }
+  // Draw seats (initial, no highlight)
+  _drawHemiSeats(ctx, null);
 
   // ═══ DRAW RSP GAUGE ═══
   drawRSPGauge(leaderProj.key === 'RSP' ? leaderTotal : 0, projections);
+}
+
+// ═══ Hemicycle seat drawing with optional party highlight ═══
+let _hemiHighlight = null; // null = show all, else party key string
+
+function _drawHemiSeats(ctx, highlightKey) {
+  for (const seat of _hemiSeats) {
+    const dimmed = highlightKey && seat.key !== highlightKey;
+    ctx.beginPath();
+    ctx.arc(seat.x, seat.y, seat.r, 0, Math.PI * 2);
+    if (dimmed) {
+      ctx.fillStyle = 'rgba(42,45,62,0.5)';
+    } else {
+      ctx.fillStyle = seat.color;
+    }
+    ctx.fill();
+    if (!dimmed && seat.key !== 'REM') {
+      ctx.save(); ctx.beginPath(); ctx.arc(seat.x, seat.y, seat.r, Math.PI, 0);
+      ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.fill(); ctx.restore();
+    }
+  }
+}
+
+function _redrawHemiHighlight(highlightKey) {
+  const canvas = document.getElementById('hemiCanvas');
+  const wrap = document.getElementById('hemiWrap');
+  if (!canvas || !wrap || !_hemiSeats.length) return;
+  const ctx = canvas.getContext('2d');
+  const DPR = window.devicePixelRatio || 1;
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  // Clear only the seat area (keep labels, divider, majority line)
+  // Easiest: redraw all seats over the background
+  for (const seat of _hemiSeats) {
+    ctx.clearRect(seat.x - seat.r - 1, seat.y - seat.r - 1, seat.r * 2 + 2, seat.r * 2 + 2);
+  }
+  _drawHemiSeats(ctx, highlightKey);
 }
 
 // ═══ RSP ANALOG GAUGE — Born2Rule gradient technique ═══
@@ -1759,6 +1792,7 @@ function _animateGauge() {
     if (canvas && !hemiListenerAttached) {
       hemiListenerAttached = true;
       const tooltip = document.getElementById('hemiTooltip');
+      let _lastHoverKey = null;
       canvas.addEventListener('mousemove', (e) => {
         const rect = canvas.getBoundingClientRect();
         const mx = e.clientX - rect.left;
@@ -1777,13 +1811,34 @@ function _animateGauge() {
             tooltip.style.left = (e.clientX - wr.left + 12) + 'px';
             tooltip.style.top = (e.clientY - wr.top - 40) + 'px';
           }
+          // Highlight this party's dots
+          if (found.key !== _lastHoverKey) {
+            _lastHoverKey = found.key;
+            _hemiHighlight = found.key;
+            _redrawHemiHighlight(found.key);
+            document.querySelectorAll('.hemi-legend-item').forEach(el => {
+              el.style.opacity = el.dataset.party === found.key ? '1' : '0.3';
+            });
+          }
           canvas.style.cursor = 'pointer';
         } else {
           tooltip.style.display = 'none';
+          if (_lastHoverKey) {
+            _lastHoverKey = null;
+            _hemiHighlight = null;
+            _redrawHemiHighlight(null);
+            document.querySelectorAll('.hemi-legend-item').forEach(el => el.style.opacity = '1');
+          }
           canvas.style.cursor = 'default';
         }
       });
-      canvas.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
+      canvas.addEventListener('mouseleave', () => {
+        tooltip.style.display = 'none';
+        _lastHoverKey = null;
+        _hemiHighlight = null;
+        _redrawHemiHighlight(null);
+        document.querySelectorAll('.hemi-legend-item').forEach(el => el.style.opacity = '1');
+      });
       observer.disconnect();
     }
   });
