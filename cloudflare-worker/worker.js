@@ -309,28 +309,20 @@ function mergeWithHighWaterMark(newResult) {
     const prev = quickCache?.partySeats?.[key];
     const hwm = partyHWM[key] || { won: 0, total: 0 };
 
-    // Get the best-known won from all sources: new scrape, in-memory cache, persistent HWM
+    // HWM on won only (declared results never go down)
+    // Leading = live from current source (naturally decreases as results declared)
     const bestWon = Math.max(newData.won || 0, prev?.won || 0, hwm.won || 0);
-    const newTotal = (newData.won || 0) + (newData.leading || 0);
-    const prevTotal = prev ? ((prev.won || 0) + (prev.leading || 0)) : 0;
-    const bestTotal = Math.max(newTotal, prevTotal, hwm.total || 0);
-
-    // Won only goes up
     newData.won = bestWon;
-    // Leading = bestTotal - bestWon (so total never drops)
-    newData.leading = Math.max(0, bestTotal - bestWon);
+    // leading stays as-is from the current scrape (no HWM)
 
-    // PR seats and FPTP+PR total: carry forward from cache/HWM (NepseBajar has these, OnlineKhabar doesn't)
+    // PR seats: carry forward from cache/HWM (NepseBajar has these, OnlineKhabar doesn't)
     const bestPr = Math.max(newData.pr || 0, prev?.pr || 0, hwm.pr || 0);
-    const bestCombinedTotal = Math.max(newData.total || 0, prev?.total || 0, hwm.combinedTotal || 0);
     if (bestPr > 0) {
       newData.pr = bestPr;
-      newData.total = bestCombinedTotal;
-      newData.direct = bestCombinedTotal - bestPr;
     }
 
-    // Update persistent HWM
-    partyHWM[key] = { won: bestWon, total: bestTotal, pr: bestPr, combinedTotal: bestCombinedTotal };
+    // Update persistent HWM (only won and pr)
+    partyHWM[key] = { won: bestWon, pr: bestPr };
   }
 
   // Carry forward any parties from quickCache that the new source didn't return
@@ -346,25 +338,11 @@ function mergeWithHighWaterMark(newResult) {
     if (!newResult.partySeats[key] && hwm.won > 0) {
       newResult.partySeats[key] = {
         won: hwm.won,
-        leading: Math.max(0, (hwm.total || 0) - hwm.won),
+        leading: 0,       // no live leading data available, don't fabricate
         pr: hwm.pr || 0,
-        total: hwm.combinedTotal || hwm.total || 0,
-        direct: (hwm.combinedTotal || hwm.total || 0) - (hwm.pr || 0)
+        total: hwm.won,
+        direct: hwm.won
       };
-    }
-  }
-
-  // GLOBAL CAP: won + leading across all parties cannot exceed 165 FPTP seats
-  let gWon = 0, gLead = 0;
-  for (const d of Object.values(newResult.partySeats)) { gWon += d.won || 0; gLead += d.leading || 0; }
-  let excess = (gWon + gLead) - 165;
-  if (excess > 0) {
-    const byLead = Object.values(newResult.partySeats).filter(d => (d.leading||0) > 0).sort((a,b) => (a.leading||0) - (b.leading||0));
-    while (excess > 0 && byLead.length) {
-      for (const d of byLead) {
-        if (excess <= 0) break;
-        if (d.leading > 0) { d.leading--; excess--; }
-      }
     }
   }
 

@@ -2282,31 +2282,11 @@ function applyLiveData(apiData) {
           console.warn(`[Data] REJECTED bad party data for ${key}: won=${newWon}, leading=${newLeading}`);
           continue;
         }
-        // High-water mark: won only goes up, total (won+leading) only goes up
-        const bestWon = Math.max(PARTIES[key].won, newWon);
-        const oldTotal = PARTIES[key].won + PARTIES[key].leading;
-        const newTotal = newWon + newLeading;
-        const bestTotal = Math.max(oldTotal, newTotal);
-        PARTIES[key].won = bestWon;
-        // Leading = bestTotal - bestWon (ensures total never drops)
-        PARTIES[key].leading = Math.max(0, bestTotal - bestWon);
+        // HWM on won only (declared results never go down)
+        // Leading = live from source (decreases as results are declared)
+        PARTIES[key].won = Math.max(PARTIES[key].won, newWon);
+        PARTIES[key].leading = newLeading;
         applied = true;
-      }
-    }
-  }
-
-  // GLOBAL CAP: won + leading across all parties cannot exceed 165 FPTP seats
-  // HWM can inflate totals when sources disagree — trim leading to fit
-  let gWon = Object.values(PARTIES).reduce((s, p) => s + p.won, 0);
-  let gLead = Object.values(PARTIES).reduce((s, p) => s + p.leading, 0);
-  let excess = (gWon + gLead) - 165;
-  if (excess > 0) {
-    // Trim leading one-by-one from parties with smallest leading (least disruption)
-    const byLead = Object.values(PARTIES).filter(p => p.leading > 0).sort((a,b) => a.leading - b.leading);
-    while (excess > 0 && byLead.length) {
-      for (const p of byLead) {
-        if (excess <= 0) break;
-        if (p.leading > 0) { p.leading--; excess--; }
       }
     }
   }
@@ -2463,15 +2443,9 @@ function loadCachedData() {
       }
       for (const [k, v] of Object.entries(cache.parties)) {
         if (PARTIES[k]) {
-          // Same total-based HWM as applyLiveData: won only up, total only up
-          const cachedWon = v.won || 0;
-          const cachedLeading = v.leading || 0;
-          const bestWon = Math.max(PARTIES[k].won, cachedWon);
-          const oldTotal = PARTIES[k].won + PARTIES[k].leading;
-          const cachedTotal = cachedWon + cachedLeading;
-          const bestTotal = Math.max(oldTotal, cachedTotal);
-          PARTIES[k].won = bestWon;
-          PARTIES[k].leading = Math.max(0, bestTotal - bestWon);
+          // HWM on won only; leading = cached value (will be overwritten by live data)
+          PARTIES[k].won = Math.max(PARTIES[k].won, v.won || 0);
+          PARTIES[k].leading = v.leading || 0;
           // Restore prSeats, prVoteCount, totalSeats if cached
           if (v.prSeats > 0) PARTIES[k].prSeats = Math.max(PARTIES[k].prSeats || 0, v.prSeats);
           if (v.prVoteCount > 0) PARTIES[k].prVoteCount = Math.max(PARTIES[k].prVoteCount || 0, v.prVoteCount);
