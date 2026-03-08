@@ -1379,8 +1379,8 @@ function renderProjection() {
 
   // Gather current data
   const partyData = Object.entries(PARTIES)
-    .map(([key, p]) => ({key, ...p, won: p.won||0, leading: p.leading||0, total: (p.won||0)+(p.leading||0), knownPR: p.prSeats||0}))
-    .filter(p => p.total > 0 || p.knownPR > 0)
+    .map(([key, p]) => ({key, ...p, won: p.won||0, leading: p.leading||0, total: (p.won||0)+(p.leading||0), knownPR: p.prSeats||0, prVoteCount: p.prVoteCount||0}))
+    .filter(p => p.total > 0 || p.knownPR > 0 || p.prVoteCount > 0)
     .sort((a,b) => (b.total+b.knownPR) - (a.total+a.knownPR));
 
   const totalWon = partyData.reduce((s,p) => s+p.won, 0);
@@ -1390,31 +1390,81 @@ function renderProjection() {
 
   if (!partyData.length) return;
 
-  // Project FPTP + PR for each party
+  // Project FPTP: won+leading + proportional distribution of remaining
   const projections = partyData.map(p => {
     const projectedFPTP = p.total + (totalResults > 0 ? Math.round(remainingFPTP * (p.total / totalResults)) : 0);
-    let projectedPR;
-    if (totalKnownPR >= 60) {
-      const remPR = Math.max(0, TOTAL_PR - totalKnownPR);
-      projectedPR = p.knownPR + (totalKnownPR > 0 ? Math.round(remPR * (p.knownPR / totalKnownPR)) : 0);
-    } else {
-      projectedPR = totalResults > 0 ? Math.round(TOTAL_PR * (p.total / totalResults)) : 0;
-    }
-    return {...p, projectedFPTP, projectedPR, projectedTotal: projectedFPTP + projectedPR};
+    return {...p, projectedFPTP, projectedPR: 0, projectedTotal: projectedFPTP};
   });
-  projections.sort((a,b) => b.projectedTotal - a.projectedTotal);
 
-  // Fix rounding: ensure FPTP sums to 165 and PR sums to 110
+  // Fix FPTP rounding to exactly 165
   let fptpSum = projections.reduce((s,p) => s+p.projectedFPTP, 0);
   if (fptpSum !== TOTAL_FPTP && projections.length) projections[0].projectedFPTP += (TOTAL_FPTP - fptpSum);
+
+  // PR seats via D'Hondt method using actual samanupatik vote counts
+  const prVoteData = partyData.filter(p => (p.prVoteCount || 0) > 0);
+  const totalPRVotes = prVoteData.reduce((s,p) => s + p.prVoteCount, 0);
+  let prMethod;
+
+  if (totalPRVotes > 0) {
+    // D'Hondt allocation with 3% threshold
+    const threshold = totalPRVotes * 0.03;
+    const eligible = prVoteData.filter(p => p.prVoteCount >= threshold);
+
+    if (eligible.length > 0) {
+      // Build quotient table
+      const quotients = [];
+      for (const p of eligible) {
+        for (let d = 1; d <= TOTAL_PR; d++) {
+          quotients.push({ key: p.key, q: p.prVoteCount / d });
+        }
+      }
+      quotients.sort((a, b) => b.q - a.q);
+
+      // Allocate 110 PR seats
+      const prAlloc = {};
+      eligible.forEach(p => prAlloc[p.key] = 0);
+      for (let i = 0; i < TOTAL_PR; i++) {
+        prAlloc[quotients[i].key]++;
+      }
+
+      // Apply to projections
+      for (const proj of projections) {
+        proj.projectedPR = prAlloc[proj.key] || 0;
+      }
+      prMethod = "PR via D'Hondt (samanupatik votes, 3% threshold)";
+    } else {
+      // No party meets threshold — fallback to FPTP ratio
+      for (const proj of projections) {
+        proj.projectedPR = totalResults > 0 ? Math.round(TOTAL_PR * (proj.total / totalResults)) : 0;
+      }
+      prMethod = 'PR projected from FPTP share (no party met 3% threshold)';
+    }
+  } else if (totalKnownPR >= 60) {
+    // Fallback: use known PR seat data from source
+    const remPR = Math.max(0, TOTAL_PR - totalKnownPR);
+    for (const proj of projections) {
+      proj.projectedPR = proj.knownPR + (totalKnownPR > 0 ? Math.round(remPR * (proj.knownPR / totalKnownPR)) : 0);
+    }
+    prMethod = 'PR from source data';
+  } else {
+    // Last resort fallback: FPTP ratio
+    for (const proj of projections) {
+      proj.projectedPR = totalResults > 0 ? Math.round(TOTAL_PR * (proj.total / totalResults)) : 0;
+    }
+    prMethod = 'PR projected from FPTP share (no PR vote data yet)';
+  }
+
+  // Fix PR rounding to exactly 110
   let prSum = projections.reduce((s,p) => s+p.projectedPR, 0);
   if (prSum !== TOTAL_PR && projections.length) projections[0].projectedPR += (TOTAL_PR - prSum);
+
+  // Calculate totals and sort
   projections.forEach(p => { p.projectedTotal = p.projectedFPTP + p.projectedPR; });
+  projections.sort((a,b) => b.projectedTotal - a.projectedTotal);
 
   const leaderProj = projections[0];
   const leaderTotal = leaderProj.projectedTotal;
   const leaderP = getParty(leaderProj.key);
-  const prMethod = totalKnownPR >= 60 ? 'PR from source data' : 'PR projected from FPTP share';
 
   // Probability gauges
   const majProb = leaderTotal >= MAJORITY ? Math.min(99, 70 + (leaderTotal-MAJORITY)*1.5) : Math.max(1, 50 - (MAJORITY-leaderTotal)*3);
@@ -2180,6 +2230,15 @@ function applyLiveData(apiData) {
     }
   }
 
+  // Update PR vote counts (samanupatik) for D'Hondt calculation
+  if (apiData.data.prVotes && Object.keys(apiData.data.prVotes).length > 0) {
+    for (const [key, votes] of Object.entries(apiData.data.prVotes)) {
+      if (PARTIES[key]) {
+        PARTIES[key].prVoteCount = Math.max(PARTIES[key].prVoteCount || 0, votes);
+      }
+    }
+  }
+
   // Update PR seat data from parliamentChartData
   if (apiData.data.partySeats && Object.keys(apiData.data.partySeats).length > 0) {
     for (const [key, data] of Object.entries(apiData.data.partySeats)) {
@@ -2284,7 +2343,7 @@ function cacheDataToStorage() {
       }))
     };
     for (const [k, p] of Object.entries(PARTIES)) {
-      snapshot.parties[k] = { won: p.won, leading: p.leading, prSeats: p.prSeats || 0 };
+      snapshot.parties[k] = { won: p.won, leading: p.leading, prSeats: p.prSeats || 0, prVoteCount: p.prVoteCount || 0 };
     }
     localStorage.setItem('nepal_election_2082_v2', JSON.stringify(snapshot));
     console.log('[Cache] Saved live data to localStorage');
@@ -2330,6 +2389,7 @@ function loadCachedData() {
           PARTIES[k].leading = Math.max(0, bestTotal - bestWon);
           // Restore prSeats if cached
           if (v.prSeats > 0) PARTIES[k].prSeats = Math.max(PARTIES[k].prSeats || 0, v.prSeats);
+          if (v.prVoteCount > 0) PARTIES[k].prVoteCount = Math.max(PARTIES[k].prVoteCount || 0, v.prVoteCount);
         }
       }
     }

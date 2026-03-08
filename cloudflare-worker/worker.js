@@ -277,7 +277,7 @@ async function quickScrapeOnlineKhabar() {
   const res = await fetchWithTimeout(ONLINEKHABAR_API, 6000);
   const json = await res.json();
 
-  const result = { partySeats: {}, source: 'onlinekhabar' };
+  const result = { partySeats: {}, prVotes: {}, source: 'onlinekhabar' };
 
   if (json.status === 200 && json.data && json.data.party_results) {
     for (const p of json.data.party_results) {
@@ -290,6 +290,11 @@ async function quickScrapeOnlineKhabar() {
         leading: p.leading_count || 0,
         won: p.winner_count || 0
       };
+      // PR (samanupatik) vote counts for D'Hondt calculation
+      const prVoteCount = parseInt(p.samanupatik) || 0;
+      if (prVoteCount > 0) {
+        result.prVotes[key] = prVoteCount;
+      }
     }
   }
 
@@ -375,6 +380,18 @@ async function quickScrape() {
 
   // Merge with high-water mark so won never decreases across sources
   result = mergeWithHighWaterMark(result);
+
+  // Carry forward prVotes from cache if current source didn't provide them
+  if (!result.prVotes || Object.keys(result.prVotes).length === 0) {
+    result.prVotes = quickCache?.prVotes || {};
+  } else if (quickCache?.prVotes) {
+    // Merge: use higher vote count (PR counting only goes up)
+    for (const [key, prev] of Object.entries(quickCache.prVotes)) {
+      if (!result.prVotes[key] || prev > result.prVotes[key]) {
+        result.prVotes[key] = prev;
+      }
+    }
+  }
 
   quickCache = result;
   quickCacheTimestamp = now;
@@ -566,6 +583,7 @@ function buildResponse(quick, deepResult, startTime) {
       parties,
       constituencies,
       partySeats: quick.partySeats,
+      prVotes: quick.prVotes || {},
       meta: {
         totalSeats: 275,
         fptpSeats: 165,
