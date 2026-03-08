@@ -144,6 +144,9 @@
   .waffle-legend-item { display:flex; align-items:center; gap:3px; font-size:0.5rem; color:var(--text2); }
   .waffle-legend-dot { width:6px; height:6px; border-radius:1.5px; flex-shrink:0; }
 
+  .collapse-toggle { display:block; width:100%; padding:8px; margin:4px 0 16px; background:var(--bg2); border:1px solid var(--border); border-radius:8px; color:var(--text2); font-size:0.75rem; cursor:pointer; text-align:center; transition:background 0.2s, color 0.2s; }
+  .collapse-toggle:hover { background:var(--bg3); color:var(--text); }
+
   .hot-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(340px,1fr)); gap:12px; margin-bottom:22px; }
   .hot-card { background:var(--bg2); border:1px solid var(--border); border-radius:14px; padding:14px; position:relative; overflow:hidden; transition:border-color 0.3s; }
   .hot-card.featured { border-color:var(--gold); box-shadow:0 0 20px rgba(245,197,66,0.08); }
@@ -300,8 +303,8 @@
 
 <div class="container">
 
-  <!-- Geographic Navigation -->
-  <div class="geo-nav animate-in">
+  <!-- Geographic Navigation (hidden — filtering via province tabs + search) -->
+  <div class="geo-nav animate-in" style="display:none">
     <select id="geoProvince" onchange="onGeoProvince(this.value)">
       <option value="">All Provinces</option>
     </select>
@@ -343,20 +346,27 @@
     <!-- Seat Visualization Bar — Modern Design -->
     <div class="party-tally animate-in">
       <div class="section-title"><span>📊</span> FPTP Seat Tally — Won + Leading</div>
-      <div style="position:relative;padding-top:28px;margin-bottom:20px;">
+      <div style="margin-bottom:16px;">
         <div class="seat-bar" id="seatBar"></div>
-        <div class="majority-marker">
-          <div class="marker-label">138 Majority</div>
-          <div class="marker-line"></div>
-          <div class="marker-diamond"></div>
-        </div>
       </div>
       <div class="party-rows" id="partyTableBody"></div>
+      <div id="partyTableMore" style="display:none">
+        <div class="party-rows" id="partyTableRest"></div>
+      </div>
+      <button id="partyToggleBtn" class="collapse-toggle" onclick="togglePartyTable()" style="display:none">
+        Show more parties ▾
+      </button>
     </div>
 
     <!-- Province Results — Waffle Grid -->
     <div class="section-title animate-in"><span>🗺️</span> Province-wise Breakdown</div>
     <div class="prov-waffle-container" id="provincesGrid"></div>
+    <div id="provincesMore" style="display:none">
+      <div class="prov-waffle-container" id="provincesGridRest"></div>
+    </div>
+    <button id="provToggleBtn" class="collapse-toggle" onclick="toggleProvinces()">
+      Show more provinces ▾
+    </button>
 
     <!-- EJ Designs Projection — Hemicycle Parliament -->
     <div class="section-title animate-in"><span>📊</span> Projected Parliament Composition</div>
@@ -1257,31 +1267,46 @@ function renderSeatBar() {
     .map(([k,v])=>({key:k,...v,total:v.won+v.leading}))
     .filter(p=>p.total>0)
     .sort((a,b)=>b.total-a.total);
-  const total = entries.reduce((s,p)=>s+p.total,0);
+
+  // Top 4 parties + combine rest
+  const top4 = entries.slice(0, 4);
+  const rest = entries.slice(4);
+  const restTotal = rest.reduce((s,p)=>s+p.total, 0);
+  const allDisplay = [...top4];
+  if (restTotal > 0) allDisplay.push({ key:'_REST', short:'Rest', color:'#607D8B', total:restTotal, won:rest.reduce((s,p)=>s+p.won,0), leading:rest.reduce((s,p)=>s+p.leading,0) });
+  const total = allDisplay.reduce((s,p)=>s+p.total,0);
   const remaining = Math.max(0, 165-total);
 
-  bar.innerHTML = entries.map(p => {
-    const pct = p.total/275*100;
-    // Show label with count + short name for segments wide enough
-    const label = p.total > 8
-      ? `<div class="seg-label"><span class="seg-count">${p.total}</span><span class="seg-name">${p.short}</span></div>`
-      : (p.total > 3 ? `<span style="z-index:1">${p.total}</span>` : '');
-    return `<div class="seat-segment" style="width:${pct}%;background:${p.color}" title="${p.short}: ${p.won} won + ${p.leading} leading = ${p.total}">${label}</div>`;
+  // Horizontal bar chart style
+  const maxVal = allDisplay[0]?.total || 1;
+  bar.innerHTML = allDisplay.map(p => {
+    const barPct = Math.max(2, p.total / 165 * 100);
+    return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <div style="width:50px;text-align:right;font-size:0.7rem;color:var(--text2);flex-shrink:0">${p.short}</div>
+      <div style="flex:1;height:22px;background:var(--bg3);border-radius:4px;overflow:hidden;position:relative">
+        <div style="width:${barPct}%;height:100%;background:${p.color};border-radius:4px;transition:width 0.6s ease"></div>
+      </div>
+      <div style="width:36px;text-align:right;font-weight:700;font-size:0.8rem;color:${p.color};flex-shrink:0">${p.total}</div>
+    </div>`;
   }).join('') + (remaining > 0
-    ? `<div class="seat-segment" style="width:${remaining/275*100}%;background:var(--bg3);color:var(--text2)" title="Remaining: ${remaining}">${remaining > 5 ? remaining : ''}</div>`
-    : '');
+    ? `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <div style="width:50px;text-align:right;font-size:0.7rem;color:var(--text2);flex-shrink:0">TBD</div>
+        <div style="flex:1;height:22px;background:var(--bg3);border-radius:4px;overflow:hidden;position:relative">
+          <div style="width:${remaining/165*100}%;height:100%;background:rgba(255,255,255,0.08);border-radius:4px"></div>
+        </div>
+        <div style="width:36px;text-align:right;font-weight:700;font-size:0.8rem;color:var(--text2);flex-shrink:0">${remaining}</div>
+      </div>` : '');
 }
 
 function renderPartyTable() {
-  const body = document.getElementById('partyTableBody');
   const sorted = Object.entries(PARTIES)
     .map(([k,v])=>({key:k,...v,total:v.won+v.leading}))
     .sort((a,b)=>b.total-a.total);
   let declared = 0;
 
-  body.innerHTML = sorted.map(p => {
+  function _buildRow(p) {
     declared += p.won;
-    const change = p.total - p.seats2022;
+    const change = p.total - (p.seats2022 || 0);
     const changeStr = change > 0
       ? `<span class="change-chip up">+${change}</span>`
       : change < 0
@@ -1312,8 +1337,37 @@ function renderPartyTable() {
       </div>
       ${changeStr}
     </div>`;
-  }).join('');
+  }
+
+  // Top 4 always visible, rest in collapsible
+  const top4 = sorted.slice(0, 4);
+  const rest = sorted.slice(4);
+
+  document.getElementById('partyTableBody').innerHTML = top4.map(_buildRow).join('');
+  document.getElementById('partyTableRest').innerHTML = rest.map(_buildRow).join('');
+
+  const moreSection = document.getElementById('partyTableMore');
+  const toggleBtn = document.getElementById('partyToggleBtn');
+  if (rest.length > 0) {
+    toggleBtn.style.display = 'block';
+  } else {
+    toggleBtn.style.display = 'none';
+    moreSection.style.display = 'none';
+  }
+
   document.getElementById('declaredCount').textContent = declared;
+}
+
+function togglePartyTable() {
+  const more = document.getElementById('partyTableMore');
+  const btn = document.getElementById('partyToggleBtn');
+  if (more.style.display === 'none') {
+    more.style.display = 'block';
+    btn.textContent = 'Show fewer parties ▴';
+  } else {
+    more.style.display = 'none';
+    btn.textContent = 'Show more parties ▾';
+  }
 }
 
 // Recompute province results dynamically from live constituency data
@@ -1338,35 +1392,50 @@ function updateProvinceResults() {
   if (el) el.textContent = Math.min(reporting, 165);
 }
 
-function renderProvinces() {
-  const grid = document.getElementById('provincesGrid');
-  grid.innerHTML = PROVINCES.map(prov => {
-    const entries = Object.entries(prov.results).filter(([,v])=>v>0).sort(([,a],[,b])=>b-a);
-    const total = entries.reduce((s,[,v])=>s+v, 0);
-    // Build waffle cells: party seats first, then empty
-    const cells = [];
-    entries.forEach(([party, seats]) => {
-      const p = getParty(party);
-      const hl = partyFilter===party ? '' : partyFilter ? 'opacity:0.25;' : '';
-      for (let i = 0; i < seats; i++) cells.push(`<div class="waffle-cell" style="background:${p.color};${hl}" title="${p.short||party}"></div>`);
-    });
-    for (let i = cells.length; i < prov.seats; i++) cells.push('<div class="waffle-cell empty"></div>');
-    // Grid columns: keep compact
-    const cols = prov.seats <= 16 ? 8 : prov.seats <= 20 ? 10 : prov.seats <= 28 ? 10 : 11;
-    // Legend
-    const legend = entries.map(([party, seats]) => {
-      const p = getParty(party);
-      return `<div class="waffle-legend-item"><div class="waffle-legend-dot" style="background:${p.color}"></div>${p.short||party} ${seats}</div>`;
-    }).join('');
-    return `<div class="waffle-item">
-      <div class="waffle-header">
-        <div class="waffle-name">${prov.name} <span class="waffle-nepali">${prov.nepali}</span></div>
-        <div class="waffle-count"><span>${total}</span>/${prov.seats}</div>
-      </div>
-      <div class="waffle-grid" style="grid-template-columns:repeat(${cols},1fr)">${cells.join('')}</div>
-      <div class="waffle-legend">${legend}</div>
-    </div>`;
+function _buildProvWaffle(prov) {
+  const entries = Object.entries(prov.results).filter(([,v])=>v>0).sort(([,a],[,b])=>b-a);
+  const total = entries.reduce((s,[,v])=>s+v, 0);
+  const cells = [];
+  entries.forEach(([party, seats]) => {
+    const p = getParty(party);
+    const hl = partyFilter===party ? '' : partyFilter ? 'opacity:0.25;' : '';
+    for (let i = 0; i < seats; i++) cells.push(`<div class="waffle-cell" style="background:${p.color};${hl}" title="${p.short||party}"></div>`);
+  });
+  for (let i = cells.length; i < prov.seats; i++) cells.push('<div class="waffle-cell empty"></div>');
+  const cols = prov.seats <= 16 ? 8 : prov.seats <= 20 ? 10 : prov.seats <= 28 ? 10 : 11;
+  const legend = entries.map(([party, seats]) => {
+    const p = getParty(party);
+    return `<div class="waffle-legend-item"><div class="waffle-legend-dot" style="background:${p.color}"></div>${p.short||party} ${seats}</div>`;
   }).join('');
+  return `<div class="waffle-item">
+    <div class="waffle-header">
+      <div class="waffle-name">${prov.name} <span class="waffle-nepali">${prov.nepali}</span></div>
+      <div class="waffle-count"><span>${total}</span>/${prov.seats}</div>
+    </div>
+    <div class="waffle-grid" style="grid-template-columns:repeat(${cols},1fr)">${cells.join('')}</div>
+    <div class="waffle-legend">${legend}</div>
+  </div>`;
+}
+
+function renderProvinces() {
+  // Show Koshi, Madhesh, Bagmati (first 3); rest in collapsible
+  const visible = PROVINCES.slice(0, 3);
+  const hidden = PROVINCES.slice(3);
+  document.getElementById('provincesGrid').innerHTML = visible.map(_buildProvWaffle).join('');
+  document.getElementById('provincesGridRest').innerHTML = hidden.map(_buildProvWaffle).join('');
+  document.getElementById('provToggleBtn').style.display = hidden.length > 0 ? 'block' : 'none';
+}
+
+function toggleProvinces() {
+  const more = document.getElementById('provincesMore');
+  const btn = document.getElementById('provToggleBtn');
+  if (more.style.display === 'none') {
+    more.style.display = 'block';
+    btn.textContent = 'Show fewer provinces ▴';
+  } else {
+    more.style.display = 'none';
+    btn.textContent = 'Show more provinces ▾';
+  }
 }
 
 // ═══════════════════════════════════════════════════
@@ -2368,7 +2437,7 @@ function cacheDataToStorage() {
       }))
     };
     for (const [k, p] of Object.entries(PARTIES)) {
-      snapshot.parties[k] = { won: p.won, leading: p.leading, prSeats: p.prSeats || 0, prVoteCount: p.prVoteCount || 0 };
+      snapshot.parties[k] = { won: p.won, leading: p.leading, prSeats: p.prSeats || 0, prVoteCount: p.prVoteCount || 0, totalSeats: p.totalSeats || 0 };
     }
     localStorage.setItem('nepal_election_2082_v2', JSON.stringify(snapshot));
     console.log('[Cache] Saved live data to localStorage');
@@ -2412,9 +2481,10 @@ function loadCachedData() {
           const bestTotal = Math.max(oldTotal, cachedTotal);
           PARTIES[k].won = bestWon;
           PARTIES[k].leading = Math.max(0, bestTotal - bestWon);
-          // Restore prSeats if cached
+          // Restore prSeats, prVoteCount, totalSeats if cached
           if (v.prSeats > 0) PARTIES[k].prSeats = Math.max(PARTIES[k].prSeats || 0, v.prSeats);
           if (v.prVoteCount > 0) PARTIES[k].prVoteCount = Math.max(PARTIES[k].prVoteCount || 0, v.prVoteCount);
+          if (v.totalSeats > 0) PARTIES[k].totalSeats = Math.max(PARTIES[k].totalSeats || 0, v.totalSeats);
         }
       }
     }
