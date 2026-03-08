@@ -68,13 +68,6 @@
   .section-title { font-size:0.95rem; font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
   .party-tally { background:var(--bg2); border:1px solid var(--border); border-radius:16px; padding:18px; margin-bottom:22px; overflow-x:auto; }
 
-  /* ═══ SEAT BAR — Vertical Bar Chart ═══ */
-  .seat-bar { padding:4px 0; }
-  .bar-row { display:flex; align-items:flex-end; justify-content:center; gap:12px; padding:0 10px; }
-  .bar-col { flex:1; max-width:80px; display:flex; flex-direction:column; align-items:center; }
-  .bar-val { font-weight:800; font-size:0.85rem; margin-bottom:4px; }
-  .bar-fill { width:100%; border-radius:6px 6px 0 0; overflow:hidden; display:flex; flex-direction:column; }
-  .bar-label { font-size:0.65rem; font-weight:600; text-align:center; padding-top:4px; }
 
   /* ═══ PARTY ROWS — Card Design ═══ */
   .party-rows { display:flex; flex-direction:column; gap:6px; }
@@ -268,7 +261,6 @@
     .waffle-item{padding:8px 10px}
     .waffle-name{font-size:0.66rem}
     .summary-strip{grid-template-columns:repeat(2,1fr)} .summary-strip .summary-card .value{font-size:1.1rem}
-    .bar-row{gap:6px;padding:0 4px} .bar-col{max-width:56px} .bar-val{font-size:0.7rem} .bar-label{font-size:0.55rem}
     .search-input{font-size:0.85rem;padding:12px 16px 12px 42px}
     .geo-nav select{min-width:100%;flex-basis:100%}
     .geo-clear{width:100%;text-align:center}
@@ -336,18 +328,17 @@
       <div class="summary-card"><div class="label">Majority Mark</div><div class="value" style="color:var(--gold)">138</div><div class="sub">Seats to form govt</div></div>
       <div class="summary-card"><div class="label">Results Declared</div><div class="value" id="declaredCount" style="color:var(--green)">0</div><div class="sub">of 165 FPTP seats</div></div>
       <div class="summary-card"><div class="label">Voter Turnout</div><div class="value">~63%</div><div class="sub">of 18.9M registered</div></div>
-      <div class="summary-card"><div class="label">Reporting</div><div class="value" id="reportingCount" style="color:var(--blue)">0</div><div class="sub">of 165 constituencies</div></div>
+    </div>
+    <div class="summary-strip animate-in" style="border:1px solid rgba(33,150,243,0.15);border-radius:14px;padding:10px 8px;background:rgba(33,150,243,0.03)">
       <div class="summary-card" style="border-color:rgba(33,150,243,0.3)"><div class="label">RSP Proj. FPTP</div><div class="value" id="rspProjFPTP" style="color:#2196F3">—</div><div class="sub">projected direct seats</div></div>
       <div class="summary-card" style="border-color:rgba(33,150,243,0.3)"><div class="label">RSP Proj. PR</div><div class="value" id="rspProjPR" style="color:#2196F3">—</div><div class="sub">proportional seats</div></div>
+      <div class="summary-card" style="border-color:rgba(33,150,243,0.3)"><div class="label">RSP Proj. Total</div><div class="value" id="rspProjTotal" style="color:#2196F3">—</div><div class="sub">FPTP + PR combined</div></div>
       <div class="summary-card" style="border-color:rgba(33,150,243,0.3)"><div class="label">RSP Total PR Votes</div><div class="value" id="rspPRVotes" style="color:#2196F3;font-size:1.1rem">—</div><div class="sub">samanupatik votes</div></div>
     </div>
 
     <!-- Seat Visualization Bar — Modern Design -->
     <div class="party-tally animate-in">
       <div class="section-title"><span>📊</span> FPTP Seat Tally — Won + Leading</div>
-      <div style="margin-bottom:16px;">
-        <div class="seat-bar" id="seatBar"></div>
-      </div>
       <div class="party-rows" id="partyTableBody"></div>
       <div id="partyTableMore" style="display:none">
         <div class="party-rows" id="partyTableRest"></div>
@@ -959,7 +950,6 @@ function isConstWon(c) {
 function showPartyDetail(partyKey, type) {
   // Re-sync wonSet and table before showing popup to prevent stale data mismatch
   buildWonSet();
-  renderSeatBar();
   renderPartyTable();
 
   const party = PARTIES[partyKey];
@@ -1260,50 +1250,6 @@ function setPartyFilter(key) {
   renderAll();
 }
 
-function renderSeatBar() {
-  const bar = document.getElementById('seatBar');
-  const entries = Object.entries(PARTIES)
-    .map(([k,v])=>({key:k,...v,total:v.won+v.leading}))
-    .filter(p=>p.total>0)
-    .sort((a,b)=>b.total-a.total);
-
-  // Top 4 parties + combine rest
-  const top4 = entries.slice(0, 4);
-  const rest = entries.slice(4);
-  const restTotal = rest.reduce((s,p)=>s+p.total, 0);
-  const allDisplay = [...top4];
-  if (restTotal > 0) allDisplay.push({ key:'_REST', short:'Rest', color:'#607D8B', total:restTotal, won:rest.reduce((s,p)=>s+p.won,0), leading:rest.reduce((s,p)=>s+p.leading,0) });
-
-  const maxVal = Math.max(allDisplay[0]?.total || 1, 1);
-  const chartH = 160; // px height for bar area
-
-  // Vertical bar chart using CSS classes for mobile responsiveness
-  bar.innerHTML = `
-    <div class="bar-row" style="height:${chartH}px;border-bottom:1px solid var(--border);margin-bottom:8px">
-      ${allDisplay.map(p => {
-        const barH = Math.max(8, (p.total / maxVal) * (chartH - 30));
-        const wonH = p.won > 0 ? Math.max(2, (p.won / maxVal) * (chartH - 30)) : 0;
-        const leadH = barH - wonH;
-        return `<div class="bar-col">
-          <div class="bar-val" style="color:${p.color}">${p.total}</div>
-          <div class="bar-fill">
-            <div style="height:${leadH}px;background:${p.color};opacity:0.4;transition:height 0.6s ease" title="${p.short}: ${p.leading} leading"></div>
-            <div style="height:${wonH}px;background:${p.color};transition:height 0.6s ease" title="${p.short}: ${p.won} won"></div>
-          </div>
-        </div>`;
-      }).join('')}
-    </div>
-    <div class="bar-row">
-      ${allDisplay.map(p => `<div class="bar-col">
-        <div class="bar-label" style="color:${p.color}">${p.short}</div>
-      </div>`).join('')}
-    </div>
-    <div style="display:flex;justify-content:center;gap:12px;margin-top:8px;font-size:0.6rem;color:var(--text2)">
-      <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:var(--text2)"></span> Won</span>
-      <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:var(--text2);opacity:0.4"></span> Leading</span>
-    </div>`;
-}
-
 function renderPartyTable() {
   const sorted = Object.entries(PARTIES)
     .map(([k,v])=>({key:k,...v,total:v.won+v.leading}))
@@ -1576,6 +1522,7 @@ function renderProjection() {
   if (rspProj) {
     document.getElementById('rspProjFPTP').textContent = rspProj.projectedFPTP;
     document.getElementById('rspProjPR').textContent = rspProj.projectedPR;
+    document.getElementById('rspProjTotal').textContent = rspProj.projectedTotal;
     const prVotes = PARTIES.RSP?.prVoteCount || 0;
     document.getElementById('rspPRVotes').textContent = prVotes > 0 ? prVotes.toLocaleString() : '—';
   }
@@ -2638,7 +2585,6 @@ function renderAll() {
   updateTimestamp();
   buildWonSet();
   updateProvinceResults();
-  renderSeatBar();
   renderPartyTable();
   renderProjection();
   renderProvinces();
