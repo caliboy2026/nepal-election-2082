@@ -1402,7 +1402,7 @@ function renderProjection() {
 
   // Gather current data
   const partyData = Object.entries(PARTIES)
-    .map(([key, p]) => ({key, ...p, won: p.won||0, leading: p.leading||0, total: (p.won||0)+(p.leading||0), knownPR: p.prSeats||0, prVoteCount: p.prVoteCount||0}))
+    .map(([key, p]) => ({key, ...p, won: p.won||0, leading: p.leading||0, total: (p.won||0)+(p.leading||0), knownPR: p.prSeats||0, prVoteCount: p.prVoteCount||0, totalSeats: p.totalSeats||0}))
     .filter(p => p.total > 0 || p.knownPR > 0 || p.prVoteCount > 0)
     .sort((a,b) => (b.total+b.knownPR) - (a.total+a.knownPR));
 
@@ -1492,6 +1492,21 @@ function renderProjection() {
       p.projectedFPTP = p.totalSeats - p.projectedPR;
       p.projectedTotal = p.totalSeats;
     }
+  });
+
+  // HIGH-WATER MARK: projected FPTP and total can NEVER decrease across refreshes
+  if (!window._projHWM) window._projHWM = {};
+  projections.forEach(p => {
+    const prev = window._projHWM[p.key];
+    if (prev) {
+      p.projectedFPTP = Math.max(p.projectedFPTP, prev.fptp);
+      p.projectedTotal = Math.max(p.projectedTotal, prev.total);
+      // If total was boosted by HWM but FPTP wasn't enough, reconcile
+      if (p.projectedFPTP + p.projectedPR < p.projectedTotal) {
+        p.projectedFPTP = p.projectedTotal - p.projectedPR;
+      }
+    }
+    window._projHWM[p.key] = { fptp: p.projectedFPTP, total: p.projectedTotal };
   });
 
   projections.sort((a,b) => b.projectedTotal - a.projectedTotal);
@@ -2306,8 +2321,10 @@ function applyLiveData(apiData) {
         if (newPr > 0) {
           PARTIES[key].prSeats = Math.max(PARTIES[key].prSeats || 0, newPr);
         }
+        // totalSeats = FPTP+PR combined — only trust when source includes PR data
+        // OnlineKhabar sends pr:0 and total=won+leading (FPTP only), so skip it
         const newTotalSeats = data.total || 0;
-        if (newTotalSeats > 0) {
+        if (newTotalSeats > 0 && newPr > 0) {
           PARTIES[key].totalSeats = Math.max(PARTIES[key].totalSeats || 0, newTotalSeats);
         }
       }
@@ -2403,6 +2420,8 @@ function cacheDataToStorage() {
     for (const [k, p] of Object.entries(PARTIES)) {
       snapshot.parties[k] = { won: p.won, leading: p.leading, prSeats: p.prSeats || 0, prVoteCount: p.prVoteCount || 0, totalSeats: p.totalSeats || 0 };
     }
+    // Persist projection HWM so FPTP can never drop even after page reload
+    if (window._projHWM) snapshot.projHWM = window._projHWM;
     localStorage.setItem('nepal_election_2082_v2', JSON.stringify(snapshot));
     console.log('[Cache] Saved live data to localStorage');
   } catch (e) { console.warn('[Cache] Could not save:', e.message); }
@@ -2473,6 +2492,11 @@ function loadCachedData() {
       }
     }
     console.log(`[Cache] Loaded cached data from ${cache.timestamp}`);
+    // Restore projection HWM so FPTP can never drop after page reload
+    if (cache.projHWM) {
+      window._projHWM = cache.projHWM;
+      console.log('[Cache] Restored projection HWM:', JSON.stringify(cache.projHWM));
+    }
     return true;
   } catch (e) { console.warn('[Cache] Could not load:', e.message); return false; }
 }
