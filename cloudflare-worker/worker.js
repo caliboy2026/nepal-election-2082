@@ -320,8 +320,17 @@ function mergeWithHighWaterMark(newResult) {
     // Leading = bestTotal - bestWon (so total never drops)
     newData.leading = Math.max(0, bestTotal - bestWon);
 
+    // PR seats and FPTP+PR total: carry forward from cache/HWM (NepseBajar has these, OnlineKhabar doesn't)
+    const bestPr = Math.max(newData.pr || 0, prev?.pr || 0, hwm.pr || 0);
+    const bestCombinedTotal = Math.max(newData.total || 0, prev?.total || 0, hwm.combinedTotal || 0);
+    if (bestPr > 0) {
+      newData.pr = bestPr;
+      newData.total = bestCombinedTotal;
+      newData.direct = bestCombinedTotal - bestPr;
+    }
+
     // Update persistent HWM
-    partyHWM[key] = { won: bestWon, total: bestTotal };
+    partyHWM[key] = { won: bestWon, total: bestTotal, pr: bestPr, combinedTotal: bestCombinedTotal };
   }
 
   // Carry forward any parties from quickCache that the new source didn't return
@@ -335,7 +344,13 @@ function mergeWithHighWaterMark(newResult) {
   // Also carry forward from HWM (covers isolate restart case)
   for (const [key, hwm] of Object.entries(partyHWM)) {
     if (!newResult.partySeats[key] && hwm.won > 0) {
-      newResult.partySeats[key] = { won: hwm.won, leading: Math.max(0, (hwm.total || 0) - hwm.won) };
+      newResult.partySeats[key] = {
+        won: hwm.won,
+        leading: Math.max(0, (hwm.total || 0) - hwm.won),
+        pr: hwm.pr || 0,
+        total: hwm.combinedTotal || hwm.total || 0,
+        direct: (hwm.combinedTotal || hwm.total || 0) - (hwm.pr || 0)
+      };
     }
   }
 

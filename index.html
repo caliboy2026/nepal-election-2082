@@ -1485,15 +1485,6 @@ function renderProjection() {
   // than won+leading which can differ between OnlineKhabar and NepseBajar)
   projections.forEach(p => { p.projectedTotal = p.projectedFPTP + p.projectedPR; });
 
-  // Correct FPTP from authoritative source data (NepseBajar parliamentChartData)
-  // totalSeats = FPTP + PR combined from source; if higher than our projection, use it
-  projections.forEach(p => {
-    if (p.totalSeats && p.totalSeats > p.projectedTotal) {
-      p.projectedFPTP = p.totalSeats - p.projectedPR;
-      p.projectedTotal = p.totalSeats;
-    }
-  });
-
   // HIGH-WATER MARK: projected FPTP and total can NEVER decrease across refreshes
   if (!window._projHWM) window._projHWM = {};
   projections.forEach(p => {
