@@ -370,7 +370,7 @@
         <div class="hemi-legend-side left" id="hemiLegendLeft"></div>
         <div style="flex:1;min-width:0">
           <div class="hemicycle-wrap" id="hemiWrap">
-            <canvas id="hemiCanvas"></canvas>
+            <canvas id="hemiCanvas" ontouchstart="if(_hemiHighlight){_hemiLegendHighlight(null);event.preventDefault()}"></canvas>
             <div class="hemi-center">
               <div class="big-num">275</div>
               <div class="hc-sub">Total Seats</div>
@@ -1478,8 +1478,17 @@ function renderProjection() {
   const leaderP = getParty(leaderProj.key);
 
   // Probability gauges
-  const majProb = leaderTotal >= MAJORITY ? Math.min(99, 70 + (leaderTotal-MAJORITY)*1.5) : Math.max(1, 50 - (MAJORITY-leaderTotal)*3);
-  const ttProb = leaderTotal >= TWO_THIRDS ? Math.min(99, 60 + (leaderTotal-TWO_THIRDS)*2) : Math.max(1, 40 - (TWO_THIRDS-leaderTotal)*2.5);
+  // Factor in: (a) margin above threshold, (b) how settled the election is
+  const leaderWon = leaderProj.won + (leaderProj.knownPR || 0);
+  const declaredRatio = Math.min(1, (totalResults + totalKnownPR) / TOTAL_SEATS); // 0→1 as results come in
+  const certaintyBoost = declaredRatio * 25; // up to 25% boost when fully declared
+
+  const majProb = leaderWon >= MAJORITY ? 100 :
+    leaderTotal >= MAJORITY ? Math.min(99, 70 + (leaderTotal-MAJORITY)*1.5 + certaintyBoost) :
+    Math.max(1, 50 - (MAJORITY-leaderTotal)*3);
+  const ttProb = leaderWon >= TWO_THIRDS ? 100 :
+    leaderTotal >= TWO_THIRDS ? Math.min(99, 60 + (leaderTotal-TWO_THIRDS)*2 + certaintyBoost) :
+    Math.max(1, 40 - (TWO_THIRDS-leaderTotal)*2.5);
 
   // Update text elements
   document.getElementById('projSubtext').innerHTML =
@@ -1505,11 +1514,21 @@ function renderProjection() {
   const leftParties = visibleParties.slice(0, half);
   const rightParties = visibleParties.slice(half);
 
+  // _hemiLegendHighlight is global (called from inline touch/mouse handlers)
+  window._hemiLegendHighlight = function(key) {
+    _hemiHighlight = key;
+    _redrawHemiHighlight(key);
+    document.querySelectorAll('.hemi-legend-item').forEach(el => {
+      el.style.opacity = key ? (el.dataset.party === key ? '1' : '0.3') : '1';
+    });
+  };
+
   function _buildLegendItem(p) {
     const pp = getParty(p.key);
     return `<div class="hemi-legend-item" data-party="${p.key}" style="cursor:pointer"
-      onmouseenter="_hemiHighlight='${p.key}';_redrawHemiHighlight('${p.key}');this.style.opacity='1';document.querySelectorAll('.hemi-legend-item').forEach(el=>{if(el.dataset.party!=='${p.key}')el.style.opacity='0.3'})"
-      onmouseleave="_hemiHighlight=null;_redrawHemiHighlight(null);document.querySelectorAll('.hemi-legend-item').forEach(el=>el.style.opacity='1')">
+      onmouseenter="_hemiLegendHighlight('${p.key}')"
+      onmouseleave="_hemiLegendHighlight(null)"
+      ontouchstart="_hemiHighlight==='${p.key}'?_hemiLegendHighlight(null):_hemiLegendHighlight('${p.key}');event.preventDefault()">
       <div class="hemi-legend-dot" style="background:${pp.color}"></div>
       <div>
         <div>${pp.symbol} ${pp.short}: <span class="hl-count">${p.projectedTotal}</span></div>
@@ -1615,7 +1634,7 @@ function renderProjection() {
 }
 
 // ═══ Hemicycle seat drawing with optional party highlight ═══
-let _hemiHighlight = null; // null = show all, else party key string
+var _hemiHighlight = null; // var so inline HTML handlers can access via window scope
 
 function _drawHemiSeats(ctx, highlightKey) {
   for (const seat of _hemiSeats) {
@@ -1899,23 +1918,19 @@ function _animateGauge() {
             tooltip.style.left = (e.clientX - wr.left + 12) + 'px';
             tooltip.style.top = (e.clientY - wr.top - 40) + 'px';
           }
-          // Highlight this party's dots
+          // Highlight this party's dots (use shared function if available)
           if (found.key !== _lastHoverKey) {
             _lastHoverKey = found.key;
-            _hemiHighlight = found.key;
-            _redrawHemiHighlight(found.key);
-            document.querySelectorAll('.hemi-legend-item').forEach(el => {
-              el.style.opacity = el.dataset.party === found.key ? '1' : '0.3';
-            });
+            if (window._hemiLegendHighlight) window._hemiLegendHighlight(found.key);
+            else { _hemiHighlight = found.key; _redrawHemiHighlight(found.key); }
           }
           canvas.style.cursor = 'pointer';
         } else {
           tooltip.style.display = 'none';
           if (_lastHoverKey) {
             _lastHoverKey = null;
-            _hemiHighlight = null;
-            _redrawHemiHighlight(null);
-            document.querySelectorAll('.hemi-legend-item').forEach(el => el.style.opacity = '1');
+            if (window._hemiLegendHighlight) window._hemiLegendHighlight(null);
+            else { _hemiHighlight = null; _redrawHemiHighlight(null); }
           }
           canvas.style.cursor = 'default';
         }
@@ -1923,9 +1938,8 @@ function _animateGauge() {
       canvas.addEventListener('mouseleave', () => {
         tooltip.style.display = 'none';
         _lastHoverKey = null;
-        _hemiHighlight = null;
-        _redrawHemiHighlight(null);
-        document.querySelectorAll('.hemi-legend-item').forEach(el => el.style.opacity = '1');
+        if (window._hemiLegendHighlight) window._hemiLegendHighlight(null);
+        else { _hemiHighlight = null; _redrawHemiHighlight(null); }
       });
       observer.disconnect();
     }
