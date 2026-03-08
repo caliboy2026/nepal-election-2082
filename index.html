@@ -1458,8 +1458,19 @@ function renderProjection() {
   let prSum = projections.reduce((s,p) => s+p.projectedPR, 0);
   if (prSum !== TOTAL_PR && projections.length) projections[0].projectedPR += (TOTAL_PR - prSum);
 
-  // Calculate totals and sort
+  // Calculate totals — use source totalSeats when available (more accurate
+  // than won+leading which can differ between OnlineKhabar and NepseBajar)
   projections.forEach(p => { p.projectedTotal = p.projectedFPTP + p.projectedPR; });
+
+  // Correct FPTP from authoritative source data (NepseBajar parliamentChartData)
+  // totalSeats = FPTP + PR combined from source; if higher than our projection, use it
+  projections.forEach(p => {
+    if (p.totalSeats && p.totalSeats > p.projectedTotal) {
+      p.projectedFPTP = p.totalSeats - p.projectedPR;
+      p.projectedTotal = p.totalSeats;
+    }
+  });
+
   projections.sort((a,b) => b.projectedTotal - a.projectedTotal);
 
   const leaderProj = projections[0];
