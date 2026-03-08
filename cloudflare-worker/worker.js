@@ -354,6 +354,20 @@ function mergeWithHighWaterMark(newResult) {
     }
   }
 
+  // GLOBAL CAP: won + leading across all parties cannot exceed 165 FPTP seats
+  let gWon = 0, gLead = 0;
+  for (const d of Object.values(newResult.partySeats)) { gWon += d.won || 0; gLead += d.leading || 0; }
+  let excess = (gWon + gLead) - 165;
+  if (excess > 0) {
+    const byLead = Object.values(newResult.partySeats).filter(d => (d.leading||0) > 0).sort((a,b) => (a.leading||0) - (b.leading||0));
+    while (excess > 0 && byLead.length) {
+      for (const d of byLead) {
+        if (excess <= 0) break;
+        if (d.leading > 0) { d.leading--; excess--; }
+      }
+    }
+  }
+
   return newResult;
 }
 

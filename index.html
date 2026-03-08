@@ -2295,6 +2295,22 @@ function applyLiveData(apiData) {
     }
   }
 
+  // GLOBAL CAP: won + leading across all parties cannot exceed 165 FPTP seats
+  // HWM can inflate totals when sources disagree — trim leading to fit
+  let gWon = Object.values(PARTIES).reduce((s, p) => s + p.won, 0);
+  let gLead = Object.values(PARTIES).reduce((s, p) => s + p.leading, 0);
+  let excess = (gWon + gLead) - 165;
+  if (excess > 0) {
+    // Trim leading one-by-one from parties with smallest leading (least disruption)
+    const byLead = Object.values(PARTIES).filter(p => p.leading > 0).sort((a,b) => a.leading - b.leading);
+    while (excess > 0 && byLead.length) {
+      for (const p of byLead) {
+        if (excess <= 0) break;
+        if (p.leading > 0) { p.leading--; excess--; }
+      }
+    }
+  }
+
   // Update PR vote counts (samanupatik) for D'Hondt calculation
   if (apiData.data.prVotes && Object.keys(apiData.data.prVotes).length > 0) {
     for (const [key, votes] of Object.entries(apiData.data.prVotes)) {
