@@ -212,11 +212,25 @@
   .gauge-wrap { position:relative; width:100%; max-width:360px; aspect-ratio:2/1.35; margin:0 auto; }
   .gauge-wrap canvas { width:100%; height:100%; display:block; }
   .gauge-labels { display:flex; justify-content:space-between; padding:4px 16px 0; font-size:0.55rem; color:var(--text2); max-width:360px; margin:0 auto; }
-  .hemi-legend { display:flex; flex-wrap:wrap; gap:5px 12px; justify-content:center; }
-  .hemi-legend-item { display:flex; align-items:center; gap:4px; font-size:0.65rem; color:var(--text2); transition:opacity 0.2s; }
-  .hemi-legend-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
-  .hemi-legend-item .hl-count { font-weight:700; color:var(--text); }
-  @media(max-width:768px) { .hemicycle-wrap { aspect-ratio:2/0.9; } .hemi-center .big-num { font-size:1.2rem; } .gauge-wrap { max-width:280px; } }
+  .hemi-with-legends { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+  .hemi-legend-side { display:flex; flex-direction:column; gap:8px; flex-shrink:0; min-width:0; }
+  .hemi-legend-side.left { align-items:flex-end; text-align:right; }
+  .hemi-legend-side.right { align-items:flex-start; text-align:left; }
+  .hemi-legend-item { display:flex; align-items:center; gap:6px; font-size:0.75rem; color:var(--text2); transition:opacity 0.2s; white-space:nowrap; }
+  .hemi-legend-side.left .hemi-legend-item { flex-direction:row-reverse; }
+  .hemi-legend-dot { width:11px; height:11px; border-radius:50%; flex-shrink:0; }
+  .hemi-legend-item .hl-count { font-weight:700; color:var(--text); font-size:0.8rem; }
+  .hemi-legend-item .hl-detail { font-size:0.6rem; opacity:0.5; }
+  @media(max-width:768px) {
+    .hemicycle-wrap { aspect-ratio:2/0.9; }
+    .hemi-center .big-num { font-size:1.2rem; }
+    .gauge-wrap { max-width:280px; }
+    .hemi-with-legends { flex-direction:column; }
+    .hemi-legend-side { flex-direction:row; flex-wrap:wrap; gap:4px 10px; justify-content:center; }
+    .hemi-legend-side.left .hemi-legend-item { flex-direction:row; }
+    .hemi-legend-item { font-size:0.65rem; }
+    .hemi-legend-item .hl-count { font-size:0.7rem; }
+  }
 
   .tab-bar { display:flex; gap:4px; margin-bottom:14px; flex-wrap:wrap; }
   .tab-btn { padding:7px 14px; border:1px solid var(--border); background:transparent; color:var(--text2); border-radius:8px; cursor:pointer; font-size:0.75rem; font-weight:500; font-family:inherit; transition:all 0.2s; }
@@ -352,28 +366,33 @@
         <div class="projection-brand">EJ Designs Projection</div>
       </div>
       <div class="proj-sub" id="projSubtext"></div>
-      <div class="hemicycle-wrap" id="hemiWrap">
-        <canvas id="hemiCanvas"></canvas>
-        <div class="hemi-center">
-          <div class="big-num">275</div>
-          <div class="hc-sub">Total Seats</div>
+      <div class="hemi-with-legends">
+        <div class="hemi-legend-side left" id="hemiLegendLeft"></div>
+        <div style="flex:1;min-width:0">
+          <div class="hemicycle-wrap" id="hemiWrap">
+            <canvas id="hemiCanvas"></canvas>
+            <div class="hemi-center">
+              <div class="big-num">275</div>
+              <div class="hc-sub">Total Seats</div>
+            </div>
+            <div class="hemi-tooltip" id="hemiTooltip"></div>
+          </div>
+          <div class="hemi-sections">
+            <div class="hemi-sec">
+              <div class="hs-num">165</div>
+              <div class="hs-label">🗳️ FPTP Seats</div>
+              <div class="hs-pct">60% · Local Representative</div>
+            </div>
+            <div class="hemi-sec">
+              <div class="hs-num">110</div>
+              <div class="hs-label">📋 PR Seats</div>
+              <div class="hs-pct">40% · Party List</div>
+            </div>
+          </div>
         </div>
-        <div class="hemi-tooltip" id="hemiTooltip"></div>
-      </div>
-      <div class="hemi-sections">
-        <div class="hemi-sec">
-          <div class="hs-num">165</div>
-          <div class="hs-label">🗳️ FPTP Seats</div>
-          <div class="hs-pct">60% · Local Representative</div>
-        </div>
-        <div class="hemi-sec">
-          <div class="hs-num">110</div>
-          <div class="hs-label">📋 PR Seats</div>
-          <div class="hs-pct">40% · Party List</div>
-        </div>
+        <div class="hemi-legend-side right" id="hemiLegendRight"></div>
       </div>
       <div class="prob-gauge" id="probGauge"></div>
-      <div class="hemi-legend" id="hemiLegend"></div>
       <!-- RSP Road to Supermajority Gauge -->
       <div class="gauge-section">
         <div class="gauge-title"><span>RSP</span> — Road to Supermajority</div>
@@ -1419,19 +1438,27 @@ function renderProjection() {
       <div class="prob-detail">Need ${TWO_THIRDS} of ${TOTAL_SEATS}</div>
     </div>`;
 
-  // Legend with hover highlight
-  document.getElementById('hemiLegend').innerHTML = projections
-    .filter(p => p.projectedTotal > 0)
-    .map(p => {
-      const pp = getParty(p.key);
-      return `<div class="hemi-legend-item" data-party="${p.key}" style="cursor:pointer"
-        onmouseenter="_hemiHighlight='${p.key}';_redrawHemiHighlight('${p.key}');this.style.opacity='1';document.querySelectorAll('.hemi-legend-item').forEach(el=>{if(el.dataset.party!=='${p.key}')el.style.opacity='0.3'})"
-        onmouseleave="_hemiHighlight=null;_redrawHemiHighlight(null);document.querySelectorAll('.hemi-legend-item').forEach(el=>el.style.opacity='1')">
-        <div class="hemi-legend-dot" style="background:${pp.color}"></div>
-        ${pp.symbol} ${pp.short}: <span class="hl-count">${p.projectedTotal}</span>
-        <span style="opacity:0.5;font-size:0.55rem">(${p.projectedFPTP}F+${p.projectedPR}P)</span>
-      </div>`;
-    }).join('');
+  // Legend split left/right with hover highlight
+  const visibleParties = projections.filter(p => p.projectedTotal > 0);
+  const half = Math.ceil(visibleParties.length / 2);
+  const leftParties = visibleParties.slice(0, half);
+  const rightParties = visibleParties.slice(half);
+
+  function _buildLegendItem(p) {
+    const pp = getParty(p.key);
+    return `<div class="hemi-legend-item" data-party="${p.key}" style="cursor:pointer"
+      onmouseenter="_hemiHighlight='${p.key}';_redrawHemiHighlight('${p.key}');this.style.opacity='1';document.querySelectorAll('.hemi-legend-item').forEach(el=>{if(el.dataset.party!=='${p.key}')el.style.opacity='0.3'})"
+      onmouseleave="_hemiHighlight=null;_redrawHemiHighlight(null);document.querySelectorAll('.hemi-legend-item').forEach(el=>el.style.opacity='1')">
+      <div class="hemi-legend-dot" style="background:${pp.color}"></div>
+      <div>
+        <div>${pp.symbol} ${pp.short}: <span class="hl-count">${p.projectedTotal}</span></div>
+        <div class="hl-detail">${p.projectedFPTP}F + ${p.projectedPR}P</div>
+      </div>
+    </div>`;
+  }
+
+  document.getElementById('hemiLegendLeft').innerHTML = leftParties.map(_buildLegendItem).join('');
+  document.getElementById('hemiLegendRight').innerHTML = rightParties.map(_buildLegendItem).join('');
 
   document.getElementById('projDisclaimer').textContent =
     `FPTP: leads hold + remaining ${remainingFPTP} seats proportional. ${prMethod}. Not an official forecast.`;
