@@ -64,6 +64,8 @@
   .summary-card .label { font-size:0.6rem; color:var(--text2); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:3px; }
   .summary-card .value { font-size:1.35rem; font-weight:800; letter-spacing:-0.02em; }
   .summary-card .sub { font-size:0.6rem; color:var(--text2); margin-top:2px; }
+  @keyframes rspPulse { 0%,100%{box-shadow:0 0 4px rgba(33,150,243,0.2)} 50%{box-shadow:0 0 16px rgba(33,150,243,0.5)} }
+  .rsp-total-pulse { animation:rspPulse 2s ease-in-out infinite; }
 
   .section-title { font-size:0.95rem; font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
   .party-tally { background:var(--bg2); border:1px solid var(--border); border-radius:16px; padding:18px; margin-bottom:22px; overflow-x:auto; }
@@ -332,7 +334,7 @@
     <div class="summary-strip animate-in" style="border:1px solid rgba(33,150,243,0.15);border-radius:14px;padding:10px 8px;background:rgba(33,150,243,0.03)">
       <div class="summary-card" style="border-color:rgba(33,150,243,0.3)"><div class="label">RSP Proj. FPTP</div><div class="value" id="rspProjFPTP" style="color:#2196F3">—</div><div class="sub">projected direct seats</div></div>
       <div class="summary-card" style="border-color:rgba(33,150,243,0.3)"><div class="label">RSP Proj. PR</div><div class="value" id="rspProjPR" style="color:#2196F3">—</div><div class="sub">proportional seats</div></div>
-      <div class="summary-card" style="border-color:rgba(33,150,243,0.3)"><div class="label">RSP Proj. Total</div><div class="value" id="rspProjTotal" style="color:#2196F3">—</div><div class="sub">FPTP + PR combined</div></div>
+      <div class="summary-card rsp-total-pulse" style="border-color:rgba(33,150,243,0.3)"><div class="label">RSP Proj. Total</div><div class="value" id="rspProjTotal" style="color:#2196F3">—</div><div class="sub">FPTP + PR combined</div></div>
       <div class="summary-card" style="border-color:rgba(33,150,243,0.3)"><div class="label">RSP Total PR Votes</div><div class="value" id="rspPRVotes" style="color:#2196F3;font-size:1.1rem">—</div><div class="sub">samanupatik votes</div></div>
     </div>
 
