@@ -64,7 +64,10 @@
   .summary-card .label { font-size:0.6rem; color:var(--text2); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:3px; }
   .summary-card .value { font-size:1.35rem; font-weight:800; letter-spacing:-0.02em; }
   .summary-card .sub { font-size:0.6rem; color:var(--text2); margin-top:2px; }
-  @keyframes rspPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.6;transform:scale(1.08)} }
+  @keyframes rspPulse {
+    0%,100% { opacity:1; transform:scale(1); text-shadow: 0 0 8px rgba(33,150,243,0.3); }
+    50% { opacity:0.85; transform:scale(1.2); text-shadow: 0 0 20px rgba(33,150,243,0.9), 0 0 40px rgba(33,150,243,0.5); }
+  }
   .rsp-total-pulse .value { animation:rspPulse 2s ease-in-out infinite; display:inline-block; }
 
   .section-title { font-size:0.95rem; font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
